@@ -1694,7 +1694,7 @@ _objc_rootRelease(id obj)
 
 // Call [cls alloc] or [cls allocWithZone:nil], with appropriate 
 // shortcutting optimizations.
-static ALWAYS_INLINE id
+static ALWAYS_INLINE id ///< alloc方法
 callAlloc(Class cls, bool checkNil, bool allocWithZone=false)
 {
 #if __OBJC2__
@@ -1851,6 +1851,7 @@ _objc_rootZone(id obj)
 uintptr_t
 _objc_rootHash(id obj)
 {
+    ///!!!: 这里的hash方法 其实就是指针地址!!!!!
     return (uintptr_t)obj;
 }
 
@@ -2012,6 +2013,7 @@ __attribute__((objc_nonlazy_class))
 }
 
 - (Class)class {
+    /// 那道super题 😁
     return object_getClass(self);
 }
 
@@ -2063,6 +2065,7 @@ __attribute__((objc_nonlazy_class))
     return class_respondsToSelector_inst(nil, sel, self);
 }
 
+// MARK: 注意这里每一个类方法和实例方法的区别 类方法self->ISA() 实例方法[self class]
 + (BOOL)respondsToSelector:(SEL)sel {
     return class_respondsToSelector_inst(self, sel, self->ISA());
 }
@@ -2087,6 +2090,7 @@ __attribute__((objc_nonlazy_class))
     return NO;
 }
 
+///!!!: 这里的hash 本质就是讲指针转为long long是八个字节 所以默认的hash值就是自己的内存地址
 + (NSUInteger)hash {
     return _objc_rootHash(self);
 }
@@ -2095,6 +2099,7 @@ __attribute__((objc_nonlazy_class))
     return _objc_rootHash(self);
 }
 
+///!!!: 不重写equal的话 比较的就是指针
 + (BOOL)isEqual:(id)obj {
     return obj == (id)self;
 }
@@ -2120,7 +2125,7 @@ __attribute__((objc_nonlazy_class))
     return NO;
 }
 
-
+/// 这几个方法是 基类方法
 + (IMP)instanceMethodForSelector:(SEL)sel {
     if (!sel) [self doesNotRecognizeSelector:sel];
     return class_getMethodImplementation(self, sel);
@@ -2187,7 +2192,7 @@ __attribute__((objc_nonlazy_class))
     return ((id(*)(id, SEL, id, id))objc_msgSend)(self, sel, obj1, obj2);
 }
 
-
+// TODO: 这里为什么都是抛出崩溃呢???
 // Replaced by CF (returns an NSMethodSignature)
 + (NSMethodSignature *)instanceMethodSignatureForSelector:(SEL)sel {
     _objc_fatal("+[NSObject instanceMethodSignatureForSelector:] "
@@ -2243,6 +2248,7 @@ __attribute__((objc_nonlazy_class))
 
 
 + (id)new {
+    /// callAlloc就是alloc方法, 所以跟我刚学iOS的时候一个意思 new = alloc] init]
     return [callAlloc(self, false/*checkNil*/) init];
 }
 
@@ -2338,7 +2344,7 @@ __attribute__((objc_nonlazy_class))
 + (void)dealloc {
 }
 
-// MARK: 基本也看明白了, 类对象调用这些方法要么什么都不干 要么就崩溃. 至于为什么底层都有一个相同名称的类对象方法, 其实就是为了类对象通过isa指针找到元类对象, 然后
+// MARK: 基本也看明白了, 类对象调用这些方法要么什么都不干 要么就崩溃. 至于实例方法为什么底层都有一个相同名称的类方法, 其实就是为了类对象通过isa指针找到元类对象, 然后会通过super_class找到元基类, 最后y又会找到基类类对象, 苹果怕抛出unrecognize崩溃才会写的类方法.
 
 // Replaced by NSZombies
 - (void)dealloc {
