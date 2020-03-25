@@ -7383,6 +7383,7 @@ objc_constructInstance(Class cls, void *bytes)
 * takes no branch.
 **********************************************************************/
 static ALWAYS_INLINE id
+///!!!: 实例对象创建方法
 _class_createInstanceFromZone(Class cls, size_t extraBytes, void *zone,
                               int construct_flags = OBJECT_CONSTRUCT_NONE,
                               bool cxxConstruct = true,
@@ -7391,11 +7392,13 @@ _class_createInstanceFromZone(Class cls, size_t extraBytes, void *zone,
     ASSERT(cls->isRealized());
 
     // Read class's info bits all at once for performance
+    /// 是否有C++构造函数
     bool hasCxxCtor = cxxConstruct && cls->hasCxxCtor();
+    /// 是否有C++析构函数
     bool hasCxxDtor = cls->hasCxxDtor();
     bool fast = cls->canAllocNonpointer();
     size_t size;
-
+    ///!!!: 在这里每一个实例对象分配的内存必须大于等于16个字节
     size = cls->instanceSize(extraBytes);
     if (outAllocatedSize) *outAllocatedSize = size;
 

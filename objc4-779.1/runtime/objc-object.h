@@ -222,15 +222,17 @@ objc_object::initInstanceIsa(Class cls, bool hasCxxDtor)
 
 inline void 
 objc_object::initIsa(Class cls, bool nonpointer, bool hasCxxDtor) 
-{ 
+{
+    /// 如果是TaggedPointer 直接崩溃
     ASSERT(!isTaggedPointer()); 
     
     if (!nonpointer) {
+        /// 如果有isa_t
         isa = isa_t((uintptr_t)cls);
     } else {
         ASSERT(!DisableNonpointerIsa);
         ASSERT(!cls->instancesRequireRawIsa());
-
+        /// 没有 isa_t则直接初始化
         isa_t newisa(0);
 
 #if SUPPORT_INDEXED_ISA

@@ -1495,10 +1495,11 @@ struct objc_class : objc_object {
     }
 
     size_t instanceSize(size_t extraBytes) const {
+        /// 我的理解是 有缓存 则命中缓存
         if (fastpath(cache.hasFastInstanceSize(extraBytes))) {
             return cache.fastInstanceSize(extraBytes);
         }
-
+///!!!: 找到你
         size_t size = alignedInstanceSize() + extraBytes;
         // CF requires all objects be at least 16 bytes.
         if (size < 16) size = 16;

@@ -1699,7 +1699,7 @@ callAlloc(Class cls, bool checkNil, bool allocWithZone=false)
 {
 #if __OBJC2__
     if (slowpath(checkNil && !cls)) return nil;
-    if (fastpath(!cls->ISA()->hasCustomAWZ())) {
+    if (fastpath(!cls->ISA()->hasCustomAWZ())) { ///< 这里没有懂 取反值
         return _objc_rootAllocWithZone(cls, nil);
     }
 #endif
@@ -2322,6 +2322,12 @@ __attribute__((objc_nonlazy_class))
 
 + (id)alloc {
     ///!!!: alloc 分配内存
+    /*
+     其实alloc无非就是做了2件事
+     - 分配内存
+     - 对isa_t 联合体赋值
+     - 返回实例对象的指针
+     */
     return _objc_rootAlloc(self);
 }
 
@@ -2337,6 +2343,7 @@ __attribute__((objc_nonlazy_class))
 }
 
 - (id)init {
+    ///< init确实是啥都没做 估计是让子类做一些初始化操作的吧 ✨
     return _objc_rootInit(self);
 }
 
