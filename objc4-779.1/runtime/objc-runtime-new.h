@@ -883,15 +883,18 @@ class list_array_tt {
 
     void attachLists(List* const * addedLists, uint32_t addedCount) {
         if (addedCount == 0) return;
-
+///< 后编译的分类先执行
         if (hasArray()) {
             // many lists -> many lists
             uint32_t oldCount = array()->count;
             uint32_t newCount = oldCount + addedCount;
+            /// 会重现生成一块内存 大小=newCount
             setArray((array_t *)realloc(array(), array_t::byteSize(newCount)));
             array()->count = newCount;
+            /// 首先会移动类原来的方法列表
             memmove(array()->lists + addedCount, array()->lists, 
                     oldCount * sizeof(array()->lists[0]));
+            /// 然后会将分类里面的方法插入到头部 头插法 导致分类方法先行调用
             memcpy(array()->lists, addedLists, 
                    addedCount * sizeof(array()->lists[0]));
         }
