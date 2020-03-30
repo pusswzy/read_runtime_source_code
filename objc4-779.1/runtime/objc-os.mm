@@ -589,6 +589,7 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
     }
 
     if (hCount > 0) {
+        ///!!!: 会调用readImage
         _read_images(hList, hCount, totalClasses, unoptimizedTotalClasses);
     }
 
@@ -909,7 +910,7 @@ void _objc_atfork_child()
 * Bootstrap initialization. Registers our image notifier with dyld.
 * Called by libSystem BEFORE library initialization time
 **********************************************************************/
-
+#pragma dyld加载起来后的入口
 void _objc_init(void)
 {
     static bool initialized = false;
@@ -924,7 +925,12 @@ void _objc_init(void)
     exception_init();
     cache_init();
     _imp_implementationWithBlock_init();
-
+    ///!!!: 对应的三个方法
+/*
+ _dyld_objc_notify_mapped(对应&map_images回调)：当dyld已将images加载入内存时。  在这个时候将category写入类中, 也就是说类可以在load👇方法中调用分类方法了
+ _dyld_objc_notify_init(对应load_images回调)：当dyld初始化image后。OC调用类的+load方法，就是在这时进行的。
+ _dyld_objc_notify_unmapped(对应unmap_image回调)：当dyld将images移除内存时。
+ */
     _dyld_objc_notify_register(&map_images, load_images, unmap_image);
 }
 

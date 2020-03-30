@@ -19,3 +19,31 @@ About iOS runtime source code
 
 ### 博客
 https://blog.csdn.net/u013378438/article/details/80733391
+
+
+> 以下按照技术点进行区分
+
+## category
+
+将分类注册到它的target class的核心代码
+```objective-c
+if (cat->instanceMethods ||  cat->protocols
+                       ||  cat->instanceProperties)
+                   {
+                       if (cls->isRealized()) {
+                           attachCategories(cls, &lc, 1, ATTACH_EXISTING);
+                       } else {
+                           objc::unattachedCategories.addForClass(lc, cls);
+                       }
+                   }
+                   
+                   if (cat->classMethods  ||  cat->protocols
+                       ||  (hasClassProperties && cat->_classProperties))
+                   {
+                       if (cls->ISA()->isRealized()) {
+                           attachCategories(cls->ISA(), &lc, 1, ATTACH_EXISTING | ATTACH_METACLASS);
+                       } else {
+                           objc::unattachedCategories.addForClass(lc, cls->ISA());
+                       }NSString
+                   }
+```

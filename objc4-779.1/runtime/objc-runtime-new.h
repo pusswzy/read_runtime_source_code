@@ -880,7 +880,7 @@ class list_array_tt {
             return &list;
         }
     }
-
+///< 将两个lists合二为一
     void attachLists(List* const * addedLists, uint32_t addedCount) {
         if (addedCount == 0) return;
 

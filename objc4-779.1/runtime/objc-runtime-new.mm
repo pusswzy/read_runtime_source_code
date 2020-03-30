@@ -1280,6 +1280,7 @@ attachCategories(Class cls, const locstamped_category_t *cats_list, uint32_t cat
         method_list_t *mlist = entry.cat->methodsForMeta(isMeta);
         if (mlist) {
             if (mcount == ATTACH_BUFSIZ) {
+                /// lee: 从后面往前面塞??
                 prepareMethodLists(cls, mlists, mcount, NO, fromBundle);
                 rw->methods.attachLists(mlists, mcount);
                 mcount = 0;
@@ -3482,6 +3483,7 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
 
     // Discover categories.
     for (EACH_HEADER) {
+        /// lee: 读取分类属性
         bool hasClassProperties = hi->info()->hasCategoryClassProperties();
 
         auto processCatlist = [&](category_t * const *catlist) {
@@ -3491,6 +3493,7 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
                 locstamped_category_t lc{cat, hi};
                 
                 if (!cls) {
+                    /// lee: 类丢回事呢
                     // Category's target class is missing (probably weak-linked).
                     // Ignore the category.
                     if (PrintConnecting) {
@@ -3522,20 +3525,32 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
                     // First, register the category with its target class.
                     // Then, rebuild the class's method lists (etc) if
                     // the class is realized.
+                    
+                    ///!!!: 因为protocols有可能有类方法 也有可能有实例方法 所以都要进行attatch
+#warning 但是也不对 实现很奇怪 元类返回个空指针
+                    /*
+                     protocol_list_t *protocolsForMeta(bool isMeta) {
+                            if (isMeta) return nullptr;
+                            else return protocols;
+                        }
+                     */
                     if (cat->instanceMethods ||  cat->protocols
                         ||  cat->instanceProperties)
                     {
                         if (cls->isRealized()) {
+                            /// 注册分类到类对象
                             attachCategories(cls, &lc, 1, ATTACH_EXISTING);
                         } else {
                             objc::unattachedCategories.addForClass(lc, cls);
                         }
                     }
                     
+                    /// lee: 类对象现在OC也不支持
                     if (cat->classMethods  ||  cat->protocols
                         ||  (hasClassProperties && cat->_classProperties))
                     {
                         if (cls->ISA()->isRealized()) {
+                            /// 注册分类到元类对象
                             attachCategories(cls->ISA(), &lc, 1, ATTACH_EXISTING | ATTACH_METACLASS);
                         } else {
                             objc::unattachedCategories.addForClass(lc, cls->ISA());
