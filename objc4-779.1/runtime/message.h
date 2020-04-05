@@ -37,6 +37,7 @@ struct objc_super {
 
     /// Specifies the particular superclass of the instance to message. 
 #if !defined(__cplusplus)  &&  !__OBJC2__
+/// Lee: 这么牛逼么 
     /* For compatibility with old objc-runtime.h header */
     __unsafe_unretained _Nonnull Class class;
 #else

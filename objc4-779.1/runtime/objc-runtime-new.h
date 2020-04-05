@@ -703,6 +703,7 @@ struct class_ro_t {
     const char * name;
     method_list_t * baseMethodList;
     protocol_list_t * baseProtocols;
+#warning 成员变量到底t放在哪里????
     const ivar_list_t * ivars;
 
     const uint8_t * weakIvarLayout;
@@ -880,7 +881,7 @@ class list_array_tt {
             return &list;
         }
     }
-
+///< 将两个lists合二为一
     void attachLists(List* const * addedLists, uint32_t addedCount) {
         if (addedCount == 0) return;
 ///< 后编译的分类先执行
@@ -1068,7 +1069,7 @@ private:
     }
 
 public:
-
+/// 取值位或
     class_rw_t* data() const {
         return (class_rw_t *)(bits & FAST_DATA_MASK);
     }
