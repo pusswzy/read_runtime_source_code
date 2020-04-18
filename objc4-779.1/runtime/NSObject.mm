@@ -594,6 +594,7 @@ BREAKPOINT_FUNCTION(void objc_autoreleasePoolInvalid(const void *token));
 
 class AutoreleasePoolPage : private AutoreleasePoolPageData
 {
+    /// lee: friend 使该类或者函数成为友元类或友元函数。在外部就可以访问到正常情况下无法访问到的私有属性和方法
 	friend struct thread_data_t;
 
 public:
@@ -754,6 +755,7 @@ private:
 
     void releaseUntil(id *stop) 
     {
+        
         // Not recursive: we don't want to blow out the stack 
         // if a thread accumulates a stupendous amount of garbage
         
@@ -761,7 +763,7 @@ private:
             // Restart from hotPage() every time, in case -release 
             // autoreleased more objects
             AutoreleasePoolPage *page = hotPage();
-
+///< Lee: 苹果面试官也是人啊...
             // fixme I think this `while` can be `if`, but I can't prove it
             while (page->empty()) {
                 page = page->parent;
@@ -1858,6 +1860,7 @@ _objc_rootHash(id obj)
 void *
 objc_autoreleasePoolPush(void)
 {
+    ///< ::指作用域运算符，或者叫作用域限定符
     return AutoreleasePoolPage::push();
 }
 

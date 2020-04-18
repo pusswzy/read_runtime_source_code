@@ -256,9 +256,11 @@
 		B867365E242C85AC007D1602 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = G76XV7LDSV;
+				DEVELOPMENT_TEAM = NMMY49G3S2;
 				ENABLE_HARDENED_RUNTIME = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "-1232";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -266,9 +268,11 @@
 		B867365F242C85AC007D1602 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = G76XV7LDSV;
+				DEVELOPMENT_TEAM = NMMY49G3S2;
 				ENABLE_HARDENED_RUNTIME = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "-1232";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

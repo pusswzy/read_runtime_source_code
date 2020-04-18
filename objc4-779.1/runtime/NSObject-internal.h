@@ -123,13 +123,13 @@ struct magic_t {
 class AutoreleasePoolPage;
 struct AutoreleasePoolPageData
 {
-	magic_t const magic;
-	__unsafe_unretained id *next;
-	pthread_t const thread;
-	AutoreleasePoolPage * const parent;
-	AutoreleasePoolPage *child;
-	uint32_t const depth;
-	uint32_t hiwat;
+	magic_t const magic; // 魔数，用于自身的完整性校验                                                         16字节
+	__unsafe_unretained id *next;  // 指向autorelePool page中的下一个可用位置
+	pthread_t const thread;  // 和autorelePool page中相关的线程
+	AutoreleasePoolPage * const parent; // autoreleasPool page双向链表的前向指针
+	AutoreleasePoolPage *child; // autoreleasPool page双向链表的后向指针
+	uint32_t const depth;  // 当前autoreleasPool page在双向链表中的位置（深度）
+	uint32_t hiwat; // high water mark. 最高水位，可用近似理解为autoreleasPool page双向链表中的元素个数       4字节
 
 	AutoreleasePoolPageData(__unsafe_unretained id* _next, pthread_t _thread, AutoreleasePoolPage* _parent, uint32_t _depth, uint32_t _hiwat)
 		: magic(), next(_next), thread(_thread),
