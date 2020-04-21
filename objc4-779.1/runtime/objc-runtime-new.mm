@@ -2431,7 +2431,7 @@ static void reconcileInstanceVariables(Class cls, Class supercls, const class_ro
 * Performs first-time initialization on class cls, 
 * including allocating its read-write data.
 * Does not perform any Swift-side initialization.
-* Returns the real class structure for the class. 
+* Returns the real class structure for the class.   返回一个类的真正结构...
 * Locking: runtimeLock must be write-locked by the caller
 **********************************************************************/
 static Class realizeClassWithoutSwift(Class cls, Class previously)

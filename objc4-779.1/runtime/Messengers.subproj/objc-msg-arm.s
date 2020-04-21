@@ -382,7 +382,9 @@ LCacheMiss$1:
 	cbz	r0, LNilReceiver_f
 
 	ldr	r9, [r0]		// r9 = self->isa
+/// 假大空->通过isa找到类对象
 	GetClassFromIsa			// r9 = class
+/// 现在缓存里面找
 	CacheLookup NORMAL, _objc_msgSend
 	// cache hit, IMP in r12, eq already set for nonstret forwarding
 	bx	r12			// call imp

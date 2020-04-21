@@ -9,7 +9,7 @@
 #import "Person.h"
 
 @implementation Person
-+ (void)wocao {
-    NSLog(@",ade");
-}
+//+ (void)wocao {
+//    NSLog(@",ade");
+//}
 @end

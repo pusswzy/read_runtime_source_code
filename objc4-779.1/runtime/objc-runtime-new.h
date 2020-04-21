@@ -703,6 +703,7 @@ struct class_ro_t {
     const char * name;
     method_list_t * baseMethodList;
     protocol_list_t * baseProtocols;
+#warning 成员变量到底t放在哪里????
     const ivar_list_t * ivars;
 
     const uint8_t * weakIvarLayout;
@@ -883,15 +884,18 @@ class list_array_tt {
 ///< 将两个lists合二为一
     void attachLists(List* const * addedLists, uint32_t addedCount) {
         if (addedCount == 0) return;
-
+///< 后编译的分类先执行
         if (hasArray()) {
             // many lists -> many lists
             uint32_t oldCount = array()->count;
             uint32_t newCount = oldCount + addedCount;
+            /// 会重现生成一块内存 大小=newCount
             setArray((array_t *)realloc(array(), array_t::byteSize(newCount)));
             array()->count = newCount;
+            /// 首先会移动类原来的方法列表
             memmove(array()->lists + addedCount, array()->lists, 
                     oldCount * sizeof(array()->lists[0]));
+            /// 然后会将分类里面的方法插入到头部 头插法 导致分类方法先行调用
             memcpy(array()->lists, addedLists, 
                    addedCount * sizeof(array()->lists[0]));
         }
@@ -1065,7 +1069,7 @@ private:
     }
 
 public:
-
+/// 取值位或
     class_rw_t* data() const {
         return (class_rw_t *)(bits & FAST_DATA_MASK);
     }
