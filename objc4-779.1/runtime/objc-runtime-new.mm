@@ -3903,7 +3903,7 @@ void method_exchangeImplementations(Method m1, Method m2)
     if (!m1  ||  !m2) return;
 
     mutex_locker_t lock(runtimeLock);
-
+    /// 哈哈 可爱的实现代码
     IMP m1_imp = m1->imp;
     m1->imp = m2->imp;
     m2->imp = m1_imp;

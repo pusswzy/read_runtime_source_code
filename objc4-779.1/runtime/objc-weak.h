@@ -30,8 +30,8 @@
 __BEGIN_DECLS
 
 /*
-The weak table is a hash table governed by a single spin lock.
-An allocated blob of memory, most often an object, but under GC any such 
+The weak table is a hash table governed by a single spin lock.                   /// 弱引用表本质是一个哈希表格,且被一个自旋锁控制
+An allocated blob of memory, most often an object, but under GC any such         ///
 allocation, may have its address stored in a __weak marked storage location 
 through use of compiler generated write-barriers or hand coded uses of the 
 register weak primitive. Associated with the registration can be a callback 
@@ -53,6 +53,9 @@ reclamation.
 // The address of a __weak variable.
 // These pointers are stored disguised so memory analysis tools
 // don't see lots of interior pointers from the weak table into objects.
+/*
+ DisguisedPtr类的定义如下。它对一个指针伪装处理，保存时装箱，调用时拆箱。可不纠结于为什么要将指针伪装，只需要知道DisguisedPtr<T>功能上等价于T*即可。
+ */
 typedef DisguisedPtr<objc_object *> weak_referrer_t;
 
 #if __LP64__
@@ -77,18 +80,25 @@ typedef DisguisedPtr<objc_object *> weak_referrer_t;
 // Therefore out_of_line_ness == 0b10 is used to mark the out-of-line state.
 #define REFERRERS_OUT_OF_LINE 2
 
+/// 每个 weak_entry_t 存储着一个对象的弱引用信息。weak_entry_t 的结构与 weak_table_t 很像，同样也是一个 hash 表，其中存储的元素是 weak_referrer_t ，实质是弱引用对象指针的指针。通过操作指针的指针，可以实现 weak 引用的指针在对象析构后，指向 nil。
+// weak_referrer_t 就是objc_object *
 struct weak_entry_t {
+    // 阅后即焚 DisguisedPtr<objc_object> 会让<>进一个*
     DisguisedPtr<objc_object> referent;
     union {
+        ///  weak_entry_t有一个巧妙的设计，即如果一个对象对应的弱引用数目较少的话(<=WEAK_INLINE_COUNT，runtime把这个值设置为4)，则其弱引用会被依次保存到一个inline数组里
+        ///!!!: 这两个数组是用来存储弱引用该对象的指针的指针的
         struct {
+            // 动态数组
             weak_referrer_t *referrers;
-            uintptr_t        out_of_line_ness : 2;
-            uintptr_t        num_refs : PTR_MINUS_2;
-            uintptr_t        mask;
-            uintptr_t        max_hash_displacement;
+            uintptr_t        out_of_line_ness : 2;   ///< : 2是位域 只占两个bits 是否使用动态hash数组标记位
+            uintptr_t        num_refs : PTR_MINUS_2; // hash数组中的元素个数
+            uintptr_t        mask; // hash数组长度-1，会参与hash计算。（注意，这里是hash数组的长度，而不是元素个数。比如，数组长度可能是64，而元素个数仅存了2个）素个数）
+            uintptr_t        max_hash_displacement; // 可能会发生的hash冲突的最大次数，用于判断是否出现了逻辑错误（hash表中的冲突次数绝不会超过改值）
         };
         struct {
             // out_of_line_ness field is low bits of inline_referrers[1]
+            // 定长?_数组
             weak_referrer_t  inline_referrers[WEAK_INLINE_COUNT];
         };
     };
@@ -97,14 +107,16 @@ struct weak_entry_t {
         return (out_of_line_ness == REFERRERS_OUT_OF_LINE);
     }
 
+    /// 赋值方法
     weak_entry_t& operator=(const weak_entry_t& other) {
         memcpy(this, &other, sizeof(other));
         return *this;
     }
 
-    weak_entry_t(objc_object *newReferent, objc_object **newReferrer)
-        : referent(newReferent)
+    /// 构造方法
+    weak_entry_t(objc_object *newReferent, objc_object **newReferrer) : referent(newReferent)
     {
+        /// 数组里面存的是objc_object **
         inline_referrers[0] = newReferrer;
         for (int i = 1; i < WEAK_INLINE_COUNT; i++) {
             inline_referrers[i] = nil;
@@ -117,9 +129,10 @@ struct weak_entry_t {
  * and weak_entry_t structs as their values.
  */
 struct weak_table_t {
+    /// 很标准的哈希结构
     weak_entry_t *weak_entries;
-    size_t    num_entries;
-    uintptr_t mask;
+    size_t    num_entries;   // hash数组中的元素个数
+    uintptr_t mask;         // hash数组长度-1，会参与hash计算。（注意，这里是hash数组的长度，而不是元素个数。比如，数组长度可能是64，而元素个数仅存了2个）
     uintptr_t max_hash_displacement;
 };
 
@@ -135,6 +148,7 @@ void weak_unregister_no_lock(weak_table_t *weak_table, id referent, id *referrer
 bool weak_is_registered_no_lock(weak_table_t *weak_table, id referent);
 #endif
 
+///!!!: dealloc的实现???
 /// Called on object destruction. Sets all remaining weak pointers to nil.
 void weak_clear_no_lock(weak_table_t *weak_table, id referent);
 

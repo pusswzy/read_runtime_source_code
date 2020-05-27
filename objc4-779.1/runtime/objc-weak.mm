@@ -141,7 +141,7 @@ static void append_referrer(weak_entry_t *entry, objc_object **new_referrer)
         entry->mask = WEAK_INLINE_COUNT-1;
         entry->max_hash_displacement = 0;
     }
-
+    // 必须已经使用outline了
     ASSERT(entry->out_of_line());
 
     if (entry->num_refs >= TABLE_SIZE(entry) * 3/4) {
@@ -158,6 +158,7 @@ static void append_referrer(weak_entry_t *entry, objc_object **new_referrer)
     if (hash_displacement > entry->max_hash_displacement) {
         entry->max_hash_displacement = hash_displacement;
     }
+    ///!!!: 这行代码确定是可以的么
     weak_referrer_t &ref = entry->referrers[index];
     ref = new_referrer;
     entry->num_refs++;
@@ -309,7 +310,7 @@ static void weak_entry_remove(weak_table_t *weak_table, weak_entry_t *entry)
     weak_compact_maybe(weak_table);
 }
 
-
+///!!!: 通过hash获取weak_entry_t
 /** 
  * Return the weak reference table entry for the given referent. 
  * If there is no entry for referent, return NULL. 
@@ -329,7 +330,7 @@ weak_entry_for_referent(weak_table_t *weak_table, objc_object *referent)
 
     if (!weak_entries) return nil;
 
-    size_t begin = hash_pointer(referent) & weak_table->mask;
+    size_t begin = hash_pointer(referent) & weak_table->mask; // 求出hash值
     size_t index = begin;
     size_t hash_displacement = 0;
     while (weak_table->weak_entries[index].referent != referent) {
@@ -344,6 +345,7 @@ weak_entry_for_referent(weak_table_t *weak_table, objc_object *referent)
     return &weak_table->weak_entries[index];
 }
 
+// ///!!!: 公共方法
 /** 
  * Unregister an already-registered weak reference.
  * This is used when referrer's storage is about to go away, but referent
@@ -393,7 +395,7 @@ weak_unregister_no_lock(weak_table_t *weak_table, id referent_id,
     // Do not set *referrer = nil. objc_storeWeak() requires that the 
     // value not change.
 }
-
+// ///!!!: 公共方法
 /** 
  * Registers a new (object, weak pointer) pair. Creates a new weak
  * object entry if it does not exist.
@@ -413,7 +415,7 @@ weak_register_no_lock(weak_table_t *weak_table, id referent_id,
 
     // ensure that the referenced object is viable
     bool deallocating;
-    if (!referent->ISA()->hasCustomRR()) {
+    if (!referent->ISA()-> hasCustomRR()) {
         deallocating = referent->rootIsDeallocating();
     }
     else {
@@ -465,7 +467,7 @@ weak_is_registered_no_lock(weak_table_t *weak_table, id referent_id)
 }
 #endif
 
-
+// ///!!!: 公共方法
 /** 
  * Called by dealloc; nils out all weak pointers that point to the 
  * provided object so that they can no longer be used.
@@ -517,4 +519,7 @@ weak_clear_no_lock(weak_table_t *weak_table, id referent_id)
     
     weak_entry_remove(weak_table, entry);
 }
+
+// https://wrapperss.github.io/2019/05/09/iOS中关于Weak的故事/
+// https://wangwangok.github.io/2018/05/18/source_code_objc_weak_t/
 
