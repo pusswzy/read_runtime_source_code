@@ -294,7 +294,7 @@ static void weak_entry_remove(weak_table_t *weak_table, weak_entry_t *entry)
     weak_compact_maybe(weak_table);
 }
 
-
+///!!!: 通过hash获取weak_entry_t
 /** 
  * Return the weak reference table entry for the given referent. 
  * If there is no entry for referent, return NULL. 
@@ -314,7 +314,7 @@ weak_entry_for_referent(weak_table_t *weak_table, objc_object *referent)
 
     if (!weak_entries) return nil;
 
-    size_t begin = hash_pointer(referent) & weak_table->mask;
+    size_t begin = hash_pointer(referent) & weak_table->mask; // 求出hash值
     size_t index = begin;
     size_t hash_displacement = 0;
     while (weak_table->weak_entries[index].referent != referent) {

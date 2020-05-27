@@ -30,8 +30,8 @@
 __BEGIN_DECLS
 
 /*
-The weak table is a hash table governed by a single spin lock.
-An allocated blob of memory, most often an object, but under GC any such 
+The weak table is a hash table governed by a single spin lock.                   /// 弱引用表本质是一个哈希表格,且被一个自旋锁控制
+An allocated blob of memory, most often an object, but under GC any such         ///
 allocation, may have its address stored in a __weak marked storage location 
 through use of compiler generated write-barriers or hand coded uses of the 
 register weak primitive. Associated with the registration can be a callback 
@@ -117,9 +117,10 @@ struct weak_entry_t {
  * and weak_entry_t structs as their values.
  */
 struct weak_table_t {
+    /// 很标准的哈希结构
     weak_entry_t *weak_entries;
-    size_t    num_entries;
-    uintptr_t mask;
+    size_t    num_entries;   // hash数组中的元素个数
+    uintptr_t mask;         // hash数组长度-1，会参与hash计算。（注意，这里是hash数组的长度，而不是元素个数。比如，数组长度可能是64，而元素个数仅存了2个）
     uintptr_t max_hash_displacement;
 };
 
