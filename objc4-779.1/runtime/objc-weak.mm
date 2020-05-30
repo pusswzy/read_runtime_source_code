@@ -380,7 +380,7 @@ weak_unregister_no_lock(weak_table_t *weak_table, id referent_id,
     // Do not set *referrer = nil. objc_storeWeak() requires that the 
     // value not change.
 }
-// ///!!!: 公共方法
+// ///!!!: 公共方法 主要看这个方法返回的id类型跟referent_id是不是一样的 [直接返回的就是referent_id]
 /** 
  * Registers a new (object, weak pointer) pair. Creates a new weak
  * object entry if it does not exist.
