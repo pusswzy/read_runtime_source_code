@@ -73,11 +73,17 @@ static inline uintptr_t w_hash_pointer(objc_object **key) {
  * @param entry Weak pointer hash set for a particular object.
  */
 __attribute__((noinline, used))
+// 到3/4了就会扩容么 奇怪
+
+/// 扩容
+/// @param entry 原来的entry
+/// @param new_referrer <#new_referrer description#>
 static void grow_refs_and_insert(weak_entry_t *entry, 
                                  objc_object **new_referrer)
 {
     ASSERT(entry->out_of_line());
-
+    
+    /// mask + 1
     size_t old_size = TABLE_SIZE(entry);
     size_t new_size = old_size ? old_size * 2 : 8;
 
@@ -85,6 +91,7 @@ static void grow_refs_and_insert(weak_entry_t *entry,
     weak_referrer_t *old_refs = entry->referrers;
     entry->mask = new_size - 1;
     
+    // 这里创建的数组已经是原来的2倍了 TABLE_SIZE
     entry->referrers = (weak_referrer_t *)
         calloc(TABLE_SIZE(entry), sizeof(weak_referrer_t));
     entry->num_refs = 0;
@@ -175,6 +182,7 @@ static void remove_referrer(weak_entry_t *entry, objc_object **old_referrer)
                 return;
             }
         }
+        // 移除一个没有的指针导致的报错
         _objc_inform("Attempted to unregister unknown __weak variable "
                      "at %p. This is probably incorrect use of "
                      "objc_storeWeak() and objc_loadWeak(). "
@@ -183,7 +191,8 @@ static void remove_referrer(weak_entry_t *entry, objc_object **old_referrer)
         objc_weak_error();
         return;
     }
-
+    
+    /// 更新entry的属性
     size_t begin = w_hash_pointer(old_referrer) & (entry->mask);
     size_t index = begin;
     size_t hash_displacement = 0;
@@ -217,6 +226,8 @@ static void weak_entry_insert(weak_table_t *weak_table, weak_entry_t *new_entry)
     size_t begin = hash_pointer(new_entry->referent) & (weak_table->mask);
     size_t index = begin;
     size_t hash_displacement = 0;
+    
+    /// 最基本的hash处理
     while (weak_entries[index].referent != nil) {
         index = (index+1) & weak_table->mask;
         if (index == begin) bad_weak_table(weak_entries);
@@ -258,6 +269,9 @@ static void weak_resize(weak_table_t *weak_table, size_t new_size)
 }
 
 // Grow the given zone's table of weak references if it is full.
+
+/// 扩容weak_table， 如果weak_table原来的容量是0， 则会分配64个字节的大小
+/// @param weak_table <#weak_table description#>
 static void weak_grow_maybe(weak_table_t *weak_table)
 {
     size_t old_size = TABLE_SIZE(weak_table);
@@ -269,6 +283,7 @@ static void weak_grow_maybe(weak_table_t *weak_table)
 }
 
 // Shrink the table if it is mostly empty.
+/// 1/16都没有充实的话
 static void weak_compact_maybe(weak_table_t *weak_table)
 {
     size_t old_size = TABLE_SIZE(weak_table);
