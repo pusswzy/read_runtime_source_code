@@ -265,10 +265,11 @@ objc_storeStrong(id *location, id obj)
 enum CrashIfDeallocating {
     DontCrashIfDeallocating = false, DoCrashIfDeallocating = true
 };
+// NO YES NO
 template <HaveOld haveOld, HaveNew haveNew,
           CrashIfDeallocating crashIfDeallocating>
 static id 
-storeWeak(id *location, objc_object *newObj)
+ (id *location, objc_object *newObj)
 {
     ASSERT(haveOld  ||  haveNew);
     if (!haveNew) ASSERT(newObj == nil);
@@ -284,6 +285,7 @@ storeWeak(id *location, objc_object *newObj)
  retry:
     if (haveOld) {
         oldObj = *location;
+        // 如果有旧值 必须要清理旧值的弱引用表 通过全局SideTables以oldObj(*弱引用指向的地址*)为key获取sideTable
         oldTable = &SideTables()[oldObj];
     } else {
         oldTable = nil;
@@ -293,7 +295,7 @@ storeWeak(id *location, objc_object *newObj)
     } else {
         newTable = nil;
     }
-
+    // sideTable内部有一个自旋锁
     SideTable::lockTwo<haveOld, haveNew>(oldTable, newTable);
 
     if (haveOld  &&  *location != oldObj) {
@@ -326,6 +328,7 @@ storeWeak(id *location, objc_object *newObj)
 
     // Clean up old value, if any.
     if (haveOld) {
+        // sideTable里面包含一个weak_table_t 一对一的关系
         weak_unregister_no_lock(&oldTable->weak_table, oldObj, location);
     }
 
@@ -342,6 +345,7 @@ storeWeak(id *location, objc_object *newObj)
         }
 
         // Do not set *location anywhere else. That would introduce a race.
+        /// 赋值了
         *location = (id)newObj;
     }
     else {
@@ -353,7 +357,7 @@ storeWeak(id *location, objc_object *newObj)
     return (id)newObj;
 }
 
-
+#warning DoHaveOld 就是表示之前弱引用曾经指向了某个对象
 /** 
  * This function stores a new value into a __weak variable. It would
  * be used anywhere a __weak variable is the target of an assignment.
@@ -1215,6 +1219,7 @@ objc_object::rootRelease_underflow(bool performDealloc)
 // for objects with nonpointer isa
 // that were ever weakly referenced 
 // or whose retain count ever overflowed to the side table.
+/// dealloc兜兜转转就会来到这个方法 slowPath下
 NEVER_INLINE void
 objc_object::clearDeallocating_slow()
 {
@@ -1223,6 +1228,7 @@ objc_object::clearDeallocating_slow()
     SideTable& table = SideTables()[this];
     table.lock();
     if (isa.weakly_referenced) {
+#warning 在这里清理弱引用拉
         weak_clear_no_lock(&table.weak_table, (id)this);
     }
     if (isa.has_sidetable_rc) {

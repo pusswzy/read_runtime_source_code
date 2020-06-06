@@ -443,6 +443,7 @@ objc_object::rootDealloc()
                  !isa.has_cxx_dtor  &&  
                  !isa.has_sidetable_rc))
     {
+        // 狗鸡巴没有 直接free掉
         assert(!sidetable_present());
         free(this);
     } 
