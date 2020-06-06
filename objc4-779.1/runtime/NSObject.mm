@@ -284,6 +284,7 @@ static id
     // Retry if the old value changes underneath us.
  retry:
     if (haveOld) {
+        /// 有旧值 拿到原来weak对象指向的旧值?
         oldObj = *location;
         // 如果有旧值 必须要清理旧值的弱引用表 通过全局SideTables以oldObj(*弱引用指向的地址*)为key获取sideTable
         oldTable = &SideTables()[oldObj];
@@ -297,7 +298,9 @@ static id
     }
     // sideTable内部有一个自旋锁
     SideTable::lockTwo<haveOld, haveNew>(oldTable, newTable);
-
+    
+    // 避免线程冲突重处理
+    // location 应该与 oldObj 保持一致，如果不同，说明当前的 location 已经处理过 oldObj 可是又被其他线程所修改
     if (haveOld  &&  *location != oldObj) {
         SideTable::unlockTwo<haveOld, haveNew>(oldTable, newTable);
         goto retry;
@@ -327,6 +330,7 @@ static id
     }
 
     // Clean up old value, if any.
+    /// 清除旧值指的是 在旧值的弱引用哈希表中清空这个weak reference, 并不只是weak reference = nil 这么简单
     if (haveOld) {
         // sideTable里面包含一个weak_table_t 一对一的关系
         weak_unregister_no_lock(&oldTable->weak_table, oldObj, location);
@@ -1556,7 +1560,7 @@ objc_object::sidetable_release(bool performDealloc)
     return do_dealloc;
 }
 
-
+///!!!: dealloc_weak
 void 
 objc_object::sidetable_clearDeallocating()
 {
