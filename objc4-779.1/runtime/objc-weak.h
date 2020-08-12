@@ -38,7 +38,7 @@ register weak primitive. Associated with the registration can be a callback
 block for the case when one of the allocated chunks of memory is reclaimed. 
 The table is hashed on the address of the allocated memory.  When __weak 
 marked memory changes its reference, we count on the fact that we can still 
-see its previous reference.
+see its previous reference. /// 前引用
 
 So, in the hash table, indexed by the weakly referenced item, is a list of 
 all locations where this address is currently being stored.
@@ -81,7 +81,7 @@ typedef DisguisedPtr<objc_object *> weak_referrer_t;
 #define REFERRERS_OUT_OF_LINE 2
 
 /// 每个 weak_entry_t 存储着一个对象的弱引用信息。weak_entry_t 的结构与 weak_table_t 很像，同样也是一个 hash 表，其中存储的元素是 weak_referrer_t ，实质是弱引用对象指针的指针。通过操作指针的指针，可以实现 weak 引用的指针在对象析构后，指向 nil。
-// weak_referrer_t 就是objc_object *
+// weak_referrer_t 就是objc_object **
 struct weak_entry_t {
     // 阅后即焚 DisguisedPtr<objc_object> 会让<>进一个*
     DisguisedPtr<objc_object> referent;
@@ -90,6 +90,7 @@ struct weak_entry_t {
         ///!!!: 这两个数组是用来存储弱引用该对象的指针的指针的
         struct {
             // 动态数组
+#warning 这里难道是3个*???
             weak_referrer_t *referrers;
             uintptr_t        out_of_line_ness : 2;   ///< : 2是位域 只占两个bits 是否使用动态hash数组标记位
             uintptr_t        num_refs : PTR_MINUS_2; // hash数组中的元素个数
@@ -98,7 +99,7 @@ struct weak_entry_t {
         };
         struct {
             // out_of_line_ness field is low bits of inline_referrers[1]
-            // 定长?_数组
+            // 定长数组
             weak_referrer_t  inline_referrers[WEAK_INLINE_COUNT];
         };
     };

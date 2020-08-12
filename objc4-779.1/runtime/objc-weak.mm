@@ -155,6 +155,7 @@ static void append_referrer(weak_entry_t *entry, objc_object **new_referrer)
         index = (index+1) & entry->mask;
         if (index == begin) bad_weak_table(entry);
     }
+#warning 这里只是替换最大碰撞值
     if (hash_displacement > entry->max_hash_displacement) {
         entry->max_hash_displacement = hash_displacement;
     }
@@ -377,8 +378,7 @@ weak_unregister_no_lock(weak_table_t *weak_table, id referent_id,
         bool empty = true;
         if (entry->out_of_line()  &&  entry->num_refs != 0) {
             empty = false;
-        }
-        else {
+        } else {
             for (size_t i = 0; i < WEAK_INLINE_COUNT; i++) {
                 if (entry->inline_referrers[i]) {
                     empty = false; 
@@ -410,24 +410,23 @@ weak_register_no_lock(weak_table_t *weak_table, id referent_id,
 {
     objc_object *referent = (objc_object *)referent_id;
     objc_object **referrer = (objc_object **)referrer_id;
-
+    // 不加引用了 直接给出去
     if (!referent  ||  referent->isTaggedPointer()) return referent_id;
 
     // ensure that the referenced object is viable
     bool deallocating;
     if (!referent->ISA()-> hasCustomRR()) {
         deallocating = referent->rootIsDeallocating();
-    }
-    else {
-        BOOL (*allowsWeakReference)(objc_object *, SEL) = 
-            (BOOL(*)(objc_object *, SEL))
-            object_getMethodImplementation((id)referent, 
-                                           @selector(allowsWeakReference));
+    } else {
+        BOOL (*allowsWeakReference)(objc_object *, SEL) =
+        (BOOL(*)(objc_object *, SEL))
+        object_getMethodImplementation((id)referent,
+                                       @selector(allowsWeakReference));
         if ((IMP)allowsWeakReference == _objc_msgForward) {
             return nil;
         }
         deallocating =
-            ! (*allowsWeakReference)(referent, @selector(allowsWeakReference));
+        ! (*allowsWeakReference)(referent, @selector(allowsWeakReference));
     }
 
     if (deallocating) {
@@ -494,8 +493,7 @@ weak_clear_no_lock(weak_table_t *weak_table, id referent_id)
     if (entry->out_of_line()) {
         referrers = entry->referrers;
         count = TABLE_SIZE(entry);
-    } 
-    else {
+    } else {
         referrers = entry->inline_referrers;
         count = WEAK_INLINE_COUNT;
     }
@@ -503,6 +501,7 @@ weak_clear_no_lock(weak_table_t *weak_table, id referent_id)
     for (size_t i = 0; i < count; ++i) {
         objc_object **referrer = referrers[i];
         if (referrer) {
+            /// 这行为什么能这么判断 其实得看外面赋值的时候是怎么赋值的 仅此而已
             if (*referrer == referent) {
                 *referrer = nil;
             }
