@@ -44,19 +44,21 @@ StripedMap<spinlock_t> StructLocks;
 StripedMap<spinlock_t> CppObjectLocks;
 
 #define MUTABLE_COPY 2
-
+///!!!: 传说中的get方法
 id objc_getProperty(id self, SEL _cmd, ptrdiff_t offset, BOOL atomic) {
     if (offset == 0) {
         return object_getClass(self);
     }
 
     // Retain release world
+    /// 真就是指针偏移量来获取的
     id *slot = (id*) ((char*)self + offset);
     if (!atomic) return *slot;
         
     // Atomic retain release world
     spinlock_t& slotlock = PropertyLocks[slot];
     slotlock.lock();
+    /// retain
     id value = objc_retain(*slot);
     slotlock.unlock();
     
@@ -82,12 +84,15 @@ static inline void reallySetProperty(id self, SEL _cmd, id newValue, ptrdiff_t o
     } else if (mutableCopy) {
         newValue = [newValue mutableCopyWithZone:nil];
     } else {
+        /// 指针相同就不赋值了???  [疑问: 赋值相同的话 还会不会调用KVO]
         if (*slot == newValue) return;
+        /// 会对新值retain
         newValue = objc_retain(newValue);
     }
 
     if (!atomic) {
         oldValue = *slot;
+        /// 耳机指针修改值
         *slot = newValue;
     } else {
         spinlock_t& slotlock = PropertyLocks[slot];
@@ -97,6 +102,7 @@ static inline void reallySetProperty(id self, SEL _cmd, id newValue, ptrdiff_t o
         slotlock.unlock();
     }
 
+    /// 对旧值进行释放
     objc_release(oldValue);
 }
 
