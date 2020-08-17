@@ -27,14 +27,18 @@
 }
 
 - (void)addAnimateToTargetView:(UIView *)targetView {
+    NSLog(@"%f--%f", [targetView.layer convertTime:CACurrentMediaTime() fromLayer:nil], CACurrentMediaTime());
+    
     CABasicAnimation *animation = [CABasicAnimation animationWithKeyPath:@"position.x"];
     animation.fromValue = @20;
     animation.toValue = @280;
     animation.duration = 5.0f;
-    animation.repeatCount = 100000000000;
-    animation.beginTime = 3.0f; /// 这行代码很重要 t = (tp - beginTime) * speed + timeOffset;
+    animation.repeatCount = 10;
+//    animation.beginTime = [targetView.layer convertTime:CACurrentMediaTime() fromLayer:nil] + 1; /// 这行代码很重要 t = (tp - beginTime) * speed + timeOffset;
+//    animation.timeOffset = 4;
     [targetView.layer addAnimation:animation forKey:@"123"];
     [animation setValue:targetView forKey:@"targetView"];
+    
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
@@ -45,7 +49,7 @@
 - (IBAction)timeOffsetSliderChange:(UISlider *)sender {
     CGFloat curValue = sender.value;
     CAAnimation *anim = [self.redView.layer animationForKey:@"123"];
-//    self.redView.layer.speed = 0;
+    self.redView.layer.speed = 0;
     self.redView.layer.timeOffset = curValue * anim.duration;
 }
 
@@ -53,7 +57,7 @@
     self.redView.layer.timeOffset = [self.redView.layer convertTime:CACurrentMediaTime() fromLayer:nil];
     self.redView.layer.beginTime = CACurrentMediaTime();
     self.redView.layer.speed -= 0.2;
-    NSLog(@"speed:%f", self.redView.layer.speed);
+    NSLog(@"speed:%f---%f", self.redView.layer.speed, self.redView.layer.timeOffset);
 }
 
 - (IBAction)quick:(id)sender {
@@ -63,7 +67,21 @@
 //    self.redView.layer.speed += 0.2;
 //    NSLog(@"speed:%f", self.redView.layer.speed);
 }
+- (IBAction)pause:(id)sender {
+    NSTimeInterval pasueTime = [self.redView.layer convertTime:CACurrentMediaTime() fromLayer:nil];
+    self.redView.layer.speed = 0;
+    self.redView.layer.timeOffset = pasueTime;
+}
 
+- (IBAction)resume:(id)sender {
+    NSTimeInterval prePauseTime = [self.redView.layer timeOffset];
+    self.redView.layer.speed = 1;
+    self.redView.layer.timeOffset = 0;
+    self.redView.layer.beginTime = 0;
+    CFTimeInterval timeSincePause = [self.redView.layer convertTime:CACurrentMediaTime() fromLayer:nil] - prePauseTime;
+    self.redView.layer.beginTime = timeSincePause;
+    
+}
 #pragma mark - getter method
 - (UIView *)redView {
     if (!_redView) {
