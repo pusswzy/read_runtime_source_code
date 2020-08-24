@@ -64,14 +64,9 @@ void add_class_to_loadable_list(Class cls)
     IMP method;
 
     loadMethodLock.assertLocked();
-
+// 媳妇威武 获取load方法的实现
     method = cls->getLoadMethod();
     if (!method) return;  // Don't bother if cls has no +load method
-    
-    if (PrintLoading) {
-        _objc_inform("LOAD: class '%s' scheduled for +load", 
-                     cls->nameForLogging());
-    }
     
     if (loadable_classes_used == loadable_classes_allocated) {
         loadable_classes_allocated = loadable_classes_allocated*2 + 16;
@@ -103,11 +98,6 @@ void add_category_to_loadable_list(Category cat)
 
     // Don't bother if cat has no +load method
     if (!method) return;
-
-    if (PrintLoading) {
-        _objc_inform("LOAD: category '%s(%s)' scheduled for +load", 
-                     _category_getClassName(cat), _category_getName(cat));
-    }
     
     if (loadable_categories_used == loadable_categories_allocated) {
         loadable_categories_allocated = loadable_categories_allocated*2 + 16;
@@ -195,12 +185,10 @@ static void call_class_loads(void)
     // Call all +loads for the detached list.
     for (i = 0; i < used; i++) {
         Class cls = classes[i].cls;
+        // 这里传的就是load方法的实现
         load_method_t load_method = (load_method_t)classes[i].method;
-        if (!cls) continue; 
-
-        if (PrintLoading) {
-            _objc_inform("LOAD: +[%s load]\n", cls->nameForLogging());
-        }
+        if (!cls) continue;
+        // 通过函数指针 直接调用load方法
         (*load_method)(cls, @selector(load));
     }
     
@@ -243,11 +231,6 @@ static bool call_category_loads(void)
 
         cls = _category_getClass(cat);
         if (cls  &&  cls->isLoadable()) {
-            if (PrintLoading) {
-                _objc_inform("LOAD: +[%s(%s) load]\n", 
-                             cls->nameForLogging(), 
-                             _category_getName(cat));
-            }
             (*load_method)(cls, @selector(load));
             cats[i].cat = nil;
         }
@@ -292,17 +275,10 @@ static bool call_category_loads(void)
         loadable_categories_allocated = 0;
     }
 
-    if (PrintLoading) {
-        if (loadable_categories_used != 0) {
-            _objc_inform("LOAD: %d categories still waiting for +load\n",
-                         loadable_categories_used);
-        }
-    }
-
     return new_categories_added;
 }
 
-
+/// 注释挺重要
 /***********************************************************************
 * call_load_methods
 * Call all pending class and category +load methods.

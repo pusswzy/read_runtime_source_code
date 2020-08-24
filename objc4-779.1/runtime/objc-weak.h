@@ -97,6 +97,7 @@ struct weak_entry_t {
             uintptr_t        mask; // hash数组长度-1，会参与hash计算。（注意，这里是hash数组的长度，而不是元素个数。比如，数组长度可能是64，而元素个数仅存了2个）素个数）
             uintptr_t        max_hash_displacement; // 可能会发生的hash冲突的最大次数，用于判断是否出现了逻辑错误（hash表中的冲突次数绝不会超过改值）
         };
+        
         struct {
             // out_of_line_ness field is low bits of inline_referrers[1]
             // 定长数组

@@ -374,6 +374,7 @@ weak_unregister_no_lock(weak_table_t *weak_table, id referent_id,
     if (!referent) return;
 
     if ((entry = weak_entry_for_referent(weak_table, referent))) {
+        
         remove_referrer(entry, referrer);
         bool empty = true;
         if (entry->out_of_line()  &&  entry->num_refs != 0) {

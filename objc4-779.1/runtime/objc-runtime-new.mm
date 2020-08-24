@@ -1243,15 +1243,6 @@ static void
 attachCategories(Class cls, const locstamped_category_t *cats_list, uint32_t cats_count,
                  int flags)
 {
-    if (slowpath(PrintReplacedMethods)) {
-        printReplacements(cls, cats_list, cats_count);
-    }
-    if (slowpath(PrintConnecting)) {
-        _objc_inform("CLASS: attaching %d categories to%s class '%s'%s",
-                     cats_count, (flags & ATTACH_EXISTING) ? " existing" : "",
-                     cls->nameForLogging(), (flags & ATTACH_METACLASS) ? " (meta)" : "");
-    }
-
     /*
      * Only a few classes have more than 64 categories during launch.
      * This uses a little stack, and avoids malloc.
@@ -2964,10 +2955,12 @@ load_images(const char *path __unused, const struct mach_header *mh)
     // Discover load methods
     {
         mutex_locker_t lock2(runtimeLock);
+        // 1.这里决定调用的顺序
         prepare_load_methods((const headerType *)mh);
     }
 
     // Call +load methods (without runtimeLock - re-entrant)
+    // 2.这里拿到load的方法地址直接进行调用
     call_load_methods();
 }
 
@@ -3487,6 +3480,7 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
         bool hasClassProperties = hi->info()->hasCategoryClassProperties();
 
         auto processCatlist = [&](category_t * const *catlist) {
+            /// 一个一个分类添加么??? 是一个分类数组 🙅‍♂️
             for (i = 0; i < count; i++) {
                 category_t *cat = catlist[i];
                 Class cls = remapClass(cat->cls);
@@ -3539,6 +3533,8 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
                     {
                         if (cls->isRealized()) {
                             /// 注册分类到类对象
+                            /// 知道这里为什么是1了
+                            /// 1应该也是一个数组
                             attachCategories(cls, &lc, 1, ATTACH_EXISTING);
                         } else {
                             objc::unattachedCategories.addForClass(lc, cls);
@@ -3691,12 +3687,15 @@ static void schedule_class_load(Class cls)
 {
     if (!cls) return;
     ASSERT(cls->isRealized());  // _read_images should realize
-
+    /*
+     // class +load has been called 通过这个宏放置重复调用load方法😄
+     #define RW_LOADED             (1<<23)
+     */
     if (cls->data()->flags & RW_LOADED) return;
 
-    // Ensure superclass-first ordering
+    // Ensure superclass-first ordering 递归调用自己的父类
     schedule_class_load(cls->superclass);
-
+    // 将cls放入loadable_classes数组中
     add_class_to_loadable_list(cls);
     cls->setInfo(RW_LOADED); 
 }
@@ -3715,22 +3714,20 @@ void prepare_load_methods(const headerType *mhdr)
     size_t count, i;
 
     runtimeLock.assertLocked();
-
+    
+    // 1.配置需要调用load方法的类对象数组, 按照编译顺序排序. ⚠️schedule_class_load中会递归调用, 将父类放在子类前面
     classref_t const *classlist = 
         _getObjc2NonlazyClassList(mhdr, &count);
     for (i = 0; i < count; i++) {
         schedule_class_load(remapClass(classlist[i]));
     }
-
+    
+    // 2.分类完全是按照编译顺序放置的
     category_t * const *categorylist = _getObjc2NonlazyCategoryList(mhdr, &count);
     for (i = 0; i < count; i++) {
         category_t *cat = categorylist[i];
         Class cls = remapClass(cat->cls);
         if (!cls) continue;  // category for ignored weak-linked class
-        if (cls->isSwiftStable()) {
-            _objc_fatal("Swift class extensions and categories on Swift "
-                        "classes are not allowed to have +load methods");
-        }
         realizeClassWithoutSwift(cls, nil);
         ASSERT(cls->ISA()->isRealized());
         add_category_to_loadable_list(cat);

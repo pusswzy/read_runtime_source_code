@@ -2205,7 +2205,7 @@ __attribute__((objc_nonlazy_class))
     return ((id(*)(id, SEL, id, id))objc_msgSend)(self, sel, obj1, obj2);
 }
 
-// TODO: 这里为什么都是抛出崩溃呢???
+// TODO: 这里为什么都是抛出崩溃呢??? [因为是类对象???]
 // Replaced by CF (returns an NSMethodSignature)
 + (NSMethodSignature *)instanceMethodSignatureForSelector:(SEL)sel {
     _objc_fatal("+[NSObject instanceMethodSignatureForSelector:] "
@@ -2391,16 +2391,17 @@ __attribute__((objc_nonlazy_class))
     return (id)self;
 }
 
-- (id)copy {
-    return [(id)self copyWithZone:nil];
-}
-
 + (id)mutableCopy {
     return (id)self;
 }
 
 + (id)mutableCopyWithZone:(struct _NSZone *)zone {
     return (id)self;
+}
+
+/// copy真正的实现没有暴露出来
+- (id)copy {
+    return [(id)self copyWithZone:nil];
 }
 
 - (id)mutableCopy {

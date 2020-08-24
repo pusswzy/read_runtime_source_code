@@ -443,7 +443,7 @@ objc_object::rootDealloc()
                  !isa.has_cxx_dtor  &&  
                  !isa.has_sidetable_rc))
     {
-        // 狗鸡巴没有 直接free掉
+        // 啥都没有[指的是没有弱指针引用,没有关联对象,没有c++析构函数,没有外挂哈希保存着引用计数] 直接free掉
         assert(!sidetable_present());
         free(this);
     } 
