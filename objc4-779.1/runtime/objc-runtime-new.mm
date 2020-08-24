@@ -1243,15 +1243,6 @@ static void
 attachCategories(Class cls, const locstamped_category_t *cats_list, uint32_t cats_count,
                  int flags)
 {
-    if (slowpath(PrintReplacedMethods)) {
-        printReplacements(cls, cats_list, cats_count);
-    }
-    if (slowpath(PrintConnecting)) {
-        _objc_inform("CLASS: attaching %d categories to%s class '%s'%s",
-                     cats_count, (flags & ATTACH_EXISTING) ? " existing" : "",
-                     cls->nameForLogging(), (flags & ATTACH_METACLASS) ? " (meta)" : "");
-    }
-
     /*
      * Only a few classes have more than 64 categories during launch.
      * This uses a little stack, and avoids malloc.
@@ -1272,19 +1263,20 @@ attachCategories(Class cls, const locstamped_category_t *cats_list, uint32_t cat
     uint32_t protocount = 0;
     bool fromBundle = NO;
     bool isMeta = (flags & ATTACH_METACLASS);
+    /// 拿到rw
     auto rw = cls->data();
-
+///!!!: 老版本是while(i--)逆序遍历的
     for (uint32_t i = 0; i < cats_count; i++) {
         auto& entry = cats_list[i];
 
         method_list_t *mlist = entry.cat->methodsForMeta(isMeta);
         if (mlist) {
             if (mcount == ATTACH_BUFSIZ) {
-                /// lee: 从后面往前面塞??
                 prepareMethodLists(cls, mlists, mcount, NO, fromBundle);
                 rw->methods.attachLists(mlists, mcount);
                 mcount = 0;
             }
+            /// lee: 从后面往前面塞??   [null, null, null, method_1, method_2]
             mlists[ATTACH_BUFSIZ - ++mcount] = mlist;
             fromBundle |= entry.hi->isBundle();
         }
@@ -1310,6 +1302,7 @@ attachCategories(Class cls, const locstamped_category_t *cats_list, uint32_t cat
     }
 
     if (mcount > 0) {
+        /// 这行语法没有看懂呢
         prepareMethodLists(cls, mlists + ATTACH_BUFSIZ - mcount, mcount, NO, fromBundle);
         rw->methods.attachLists(mlists + ATTACH_BUFSIZ - mcount, mcount);
         if (flags & ATTACH_EXISTING) flushCaches(cls);

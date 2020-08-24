@@ -888,6 +888,7 @@ static NSNotificationCenter *default_center = nil;
                     queue: (NSOperationQueue *)queue 
                usingBlock: (GSNotificationBlock)block
 {
+    /// 自己创建了一个observer 接收到通知的时候 会将block放进queue中执行
 	GSNotificationObserver *observer = 
 		[[GSNotificationObserver alloc] initWithQueue: queue block: block];
 
@@ -1078,141 +1079,141 @@ static NSNotificationCenter *default_center = nil;
  */
 - (void) _postAndRelease: (NSNotification*)notification
 {
-  Observation	*o;
-  unsigned	count;
-  NSString	*name = [notification name];
-  id		object;
-  GSIMapNode	n;
-  GSIMapTable	m;
-  GSIArrayItem	i[64];
-  GSIArray_t	b;
-  GSIArray	a = &b;
-
-  if (name == nil)
+    Observation    *o;
+    unsigned    count;
+    NSString    *name = [notification name];
+    id        object;
+    GSIMapNode    n;
+    GSIMapTable    m;
+    GSIArrayItem    i[64];
+    GSIArray_t    b;
+    GSIArray    a = &b;
+    
+    if (name == nil)
     {
-      RELEASE(notification);
-      [NSException raise: NSInvalidArgumentException
-		  format: @"Tried to post a notification with no name."];
+        RELEASE(notification);
+        [NSException raise: NSInvalidArgumentException
+                    format: @"Tried to post a notification with no name."];
     }
-  object = [notification object];
-
-  /*
-   * Lock the table of observations while we traverse it.
-   *
-   * The table of observations contains weak pointers which are zeroed when
-   * the observers get garbage collected.  So to avoid consistency problems
-   * we disable gc while we copy all the observations we are interested in.
-   * We use scanned memory in the array in the case where there are more
-   * than the 64 observers we allowed room for on the stack.
-   */
-  GSIArrayInitWithZoneAndStaticCapacity(a, _zone, 64, i);
-  lockNCTable(TABLE);
-
-  /*
-   * Find all the observers that specified neither NAME nor OBJECT.
-   */
-  for (o = WILDCARD = purgeCollected(WILDCARD); o != ENDOBS; o = o->next)
+    object = [notification object];
+    
+    /*
+     * Lock the table of observations while we traverse it.
+     *
+     * The table of observations contains weak pointers which are zeroed when
+     * the observers get garbage collected.  So to avoid consistency problems
+     * we disable gc while we copy all the observations we are interested in.
+     * We use scanned memory in the array in the case where there are more
+     * than the 64 observers we allowed room for on the stack.
+     */
+    GSIArrayInitWithZoneAndStaticCapacity(a, _zone, 64, i);
+    lockNCTable(TABLE);
+    
+    /*
+     * Find all the observers that specified neither NAME nor OBJECT.
+     */
+    for (o = WILDCARD = purgeCollected(WILDCARD); o != ENDOBS; o = o->next)
     {
-      GSIArrayAddItem(a, (GSIArrayItem)o);
+        GSIArrayAddItem(a, (GSIArrayItem)o);
     }
-
-  /*
-   * Find the observers that specified OBJECT, but didn't specify NAME.
-   */
-  if (object)
+    
+    /*
+     * Find the observers that specified OBJECT, but didn't specify NAME.
+     */
+    if (object)
     {
-      n = GSIMapNodeForSimpleKey(NAMELESS, (GSIMapKey)object);
-      if (n != 0)
-	{
-	  o = purgeCollectedFromMapNode(NAMELESS, n);
-	  while (o != ENDOBS)
-	    {
-	      GSIArrayAddItem(a, (GSIArrayItem)o);
-	      o = o->next;
-	    }
-	}
-    }
-
-  /*
-   * Find the observers of NAME, except those observers with a non-nil OBJECT
-   * that doesn't match the notification's OBJECT).
-   */
-  if (name)
-    {
-      n = GSIMapNodeForKey(NAMED, (GSIMapKey)((id)name));
-      if (n)
-	{
-	  m = (GSIMapTable)n->value.ptr;
-	}
-      else
-	{
-	  m = 0;
-	}
-      if (m != 0)
-	{
-	  /*
-	   * First, observers with a matching object.
-	   */
-	  n = GSIMapNodeForSimpleKey(m, (GSIMapKey)object);
-	  if (n != 0)
-	    {
-	      o = purgeCollectedFromMapNode(m, n);
-	      while (o != ENDOBS)
-		{
-		  GSIArrayAddItem(a, (GSIArrayItem)o);
-		  o = o->next;
-		}
-	    }
-
-	  if (object != nil)
-	    {
-	      /*
-	       * Now observers with a nil object.
-	       */
-	      n = GSIMapNodeForSimpleKey(m, (GSIMapKey)nil);
-	      if (n != 0)
-		{
-	          o = purgeCollectedFromMapNode(m, n);
-		  while (o != ENDOBS)
-		    {
-		      GSIArrayAddItem(a, (GSIArrayItem)o);
-		      o = o->next;
-		    }
-		}
-	    }
-	}
-    }
-
-  /* Finished with the table ... we can unlock it,
-   */
-  unlockNCTable(TABLE);
-
-  /*
-   * Now send all the notifications.
-   */
-  count = GSIArrayCount(a);
-  while (count-- > 0)
-    {
-      o = GSIArrayItemAtIndex(a, count).ext;
-      if (o->next != 0)
-	{
-          NS_DURING
+        n = GSIMapNodeForSimpleKey(NAMELESS, (GSIMapKey)object);
+        if (n != 0)
+        {
+            o = purgeCollectedFromMapNode(NAMELESS, n);
+            while (o != ENDOBS)
             {
-              [o->observer performSelector: o->selector
-                                withObject: notification];
+                GSIArrayAddItem(a, (GSIArrayItem)o);
+                o = o->next;
             }
-          NS_HANDLER
-            {
-              NSLog(@"Problem posting notification: %@", localException);
-            }
-          NS_ENDHANDLER
-	}
+        }
     }
-  lockNCTable(TABLE);
-  GSIArrayEmpty(a);
-  unlockNCTable(TABLE);
-
-  RELEASE(notification);
+    
+    /*
+     * Find the observers of NAME, except those observers with a non-nil OBJECT
+     * that doesn't match the notification's OBJECT).
+     */
+    if (name)
+    {
+        n = GSIMapNodeForKey(NAMED, (GSIMapKey)((id)name));
+        if (n)
+        {
+            m = (GSIMapTable)n->value.ptr;
+        }
+        else
+        {
+            m = 0;
+        }
+        if (m != 0)
+        {
+            /*
+             * First, observers with a matching object.
+             */
+            n = GSIMapNodeForSimpleKey(m, (GSIMapKey)object);
+            if (n != 0)
+            {
+                o = purgeCollectedFromMapNode(m, n);
+                while (o != ENDOBS)
+                {
+                    GSIArrayAddItem(a, (GSIArrayItem)o);
+                    o = o->next;
+                }
+            }
+            ///!!!: 这就是为什么发送通知的时候带有object, 添加监听者的时候object为nil也能收到的原因.
+            if (object != nil)
+            {
+                /*
+                 * Now observers with a nil object.
+                 */
+                n = GSIMapNodeForSimpleKey(m, (GSIMapKey)nil);
+                if (n != 0)
+                {
+                    o = purgeCollectedFromMapNode(m, n);
+                    while (o != ENDOBS)
+                    {
+                        GSIArrayAddItem(a, (GSIArrayItem)o);
+                        o = o->next;
+                    }
+                }
+            }
+        }
+    }
+    
+    /* Finished with the table ... we can unlock it,
+     */
+    unlockNCTable(TABLE);
+    
+    /*
+     * Now send all the notifications.
+     */
+    count = GSIArrayCount(a);
+    while (count-- > 0)
+    {
+        o = GSIArrayItemAtIndex(a, count).ext;
+        if (o->next != 0)
+        {
+            NS_DURING
+            {
+                [o->observer performSelector: o->selector
+                                  withObject: notification];
+            }
+            NS_HANDLER
+            {
+                NSLog(@"Problem posting notification: %@", localException);
+            }
+            NS_ENDHANDLER
+        }
+    }
+    lockNCTable(TABLE);
+    GSIArrayEmpty(a);
+    unlockNCTable(TABLE);
+    
+    RELEASE(notification);
 }
 
 
