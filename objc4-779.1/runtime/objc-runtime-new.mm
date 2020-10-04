@@ -1220,6 +1220,7 @@ prepareMethodLists(Class cls, method_list_t **addedLists, int addedCount,
         ASSERT(mlist);
 
         // Fixup selectors if necessary
+        ///!!!: 这个fixup就是表示是否排好序没
         if (!mlist->isFixedUp()) {
             fixupMethodList(mlist, methodsFromBundle, true/*sort*/);
         }
@@ -2424,7 +2425,7 @@ static void reconcileInstanceVariables(Class cls, Class supercls, const class_ro
 * Performs first-time initialization on class cls, 
 * including allocating its read-write data.
 * Does not perform any Swift-side initialization.
-* Returns the real class structure for the class.   返回一个类的真正结构...
+* Returns the real class structure for the class.   返回一个类的真正结构... ro->rw
 * Locking: runtimeLock must be write-locked by the caller
 **********************************************************************/
 static Class realizeClassWithoutSwift(Class cls, Class previously)
@@ -2438,7 +2439,7 @@ static Class realizeClassWithoutSwift(Class cls, Class previously)
     bool isMeta;
 
     if (!cls) return nil;
-    if (cls->isRealized()) return cls;
+    if (cls->isRealized()) return cls; // 已经初始化了
     ASSERT(cls == remapClass(cls));
 
     // fixme verify class is not in an un-dlopened part of the shared cache?
@@ -5684,8 +5685,10 @@ search_method_list_inline(const method_list_t *mlist, SEL sel)
     int methodListHasExpectedSize = mlist->entsize() == sizeof(method_t);
     
     if (fastpath(methodListIsFixedUp && methodListHasExpectedSize)) {
+        /// 如果已经是排好序的了 那么就是二叉搜索
         return findMethodInSortedMethodList(sel, mlist);
     } else {
+        /// 否则就是线性搜索
         // Linear search of unsorted method list
         for (auto& meth : *mlist) {
             if (meth.name == sel) return &meth;
@@ -5743,6 +5746,7 @@ method_lists_contains_any(method_list_t **mlists, method_list_t **end,
     return false;
 }
 
+///!!!: 根据class和sel找方法
 /***********************************************************************
  * getMethodNoSuper_nolock
  * fixme
@@ -5757,8 +5761,8 @@ getMethodNoSuper_nolock(Class cls, SEL sel)
     // fixme nil cls? 
     // fixme nil sel?
 
-    for (auto mlists = cls->data()->methods.beginLists(), 
-              end = cls->data()->methods.endLists(); 
+    for (
+         auto mlists = cls->data()->methods.beginLists(), end = cls->data()->methods.endLists();
          mlists != end;
          ++mlists)
     {
@@ -5766,6 +5770,7 @@ getMethodNoSuper_nolock(Class cls, SEL sel)
         // caller of search_method_list, inlining it turns
         // getMethodNoSuper_nolock into a frame-less function and eliminates
         // any store from this codepath.
+        /// 遍历二维数组么
         method_t *m = search_method_list_inline(*mlists, sel);
         if (m) return m;
     }
@@ -5790,7 +5795,7 @@ getMethod_nolock(Class cls, SEL sel)
     // fixme nil sel?
 
     ASSERT(cls->isRealized());
-
+/// 这里走了个遍历 不断像父类去找
     while (cls  &&  ((m = getMethodNoSuper_nolock(cls, sel))) == nil) {
         cls = cls->superclass;
     }
@@ -5826,6 +5831,7 @@ Method class_getInstanceMethod(Class cls, SEL sel)
 
 #warning fixme build and search caches
         
+    ///!!!: 调用了一次动态方法解析 是为了给机会resolver
     // Search method lists, try method resolver, etc.
     lookUpImpOrForward(nil, sel, cls, LOOKUP_RESOLVER);
 
@@ -6068,6 +6074,7 @@ IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
         }
 
         if (slowpath((curClass = curClass->superclass) == nil)) {
+            ///!!!: 基类找不到就消息转发了
             // No implementation found, and method resolver didn't help.
             // Use forwarding.
             imp = forward_imp;
@@ -6080,6 +6087,7 @@ IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
         }
 
         // Superclass cache.
+        /// 也会去找父类的cache
         imp = cache_getImp(curClass, sel);
         if (slowpath(imp == forward_imp)) {
             // Found a forward:: entry in a superclass.
@@ -6094,13 +6102,14 @@ IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
     }
 
     // No implementation found. Try method resolver once.
-
+    /// 这个是啥?
     if (slowpath(behavior & LOOKUP_RESOLVER)) {
         behavior ^= LOOKUP_RESOLVER;
         return resolveMethod_locked(inst, sel, cls, behavior);
     }
 
  done:
+    ///!!!: 父类方法也会缓存在
     log_and_fill_cache(cls, imp, sel, inst, curClass);
     runtimeLock.unlock();
  done_nolock:
@@ -6506,9 +6515,11 @@ addMethod(Class cls, SEL name, IMP imp, const char *types, bool replace)
     ASSERT(cls->isRealized());
 
     method_t *m;
+    ///!!!: 最重要的是这个方法也不会去superclass里面进行寻找
     if ((m = getMethodNoSuper_nolock(cls, name))) {
         // already exists
         if (!replace) {
+            // 返回值取反
             result = m->imp;
         } else {
             result = _method_setImplementation(cls, m, imp);
@@ -6612,17 +6623,19 @@ addMethods(Class cls, const SEL *names, const IMP *imps, const char **types,
     return failedNames;
 }
 
-
+/// 两个参数不同
 BOOL 
 class_addMethod(Class cls, SEL name, IMP imp, const char *types)
 {
     if (!cls) return NO;
 
     mutex_locker_t lock(runtimeLock);
+    ///!!!: 这个返回值挺有意思 有过有实现 返回NO,无需添加. 无实现, 返回空, 取反, 添加成功. 6666666
     return ! addMethod(cls, name, imp, types ?: "", NO);
 }
 
 
+// 只调用这一个还是不行 相当于是是将a->b  b->a的步骤没有呢
 IMP 
 class_replaceMethod(Class cls, SEL name, IMP imp, const char *types)
 {
