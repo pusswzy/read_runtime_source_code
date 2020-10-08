@@ -451,6 +451,7 @@ void objc_addLoadImageFunc(objc_func_loadImage _Nonnull func) {
 #include "objc-file-old.h"
 #endif
 
+
 void 
 map_images_nolock(unsigned mhCount, const char * const mhPaths[],
                   const struct mach_header * const mhdrs[])
@@ -491,6 +492,22 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
             
             if (mhdr->filetype == MH_EXECUTE) {
                 // Size some data structures based on main executable's size
+                
+                ///!!!: 大致的逻辑是，runtime调用_getObjc2XXX格式的方法，依次来读取对应的section内容，并根据其结果初始化其自身结构。
+                /*
+                //      function name                 content type     section name
+                GETSECT(_getObjc2SelectorRefs,        SEL,             "__objc_selrefs");
+                GETSECT(_getObjc2MessageRefs,         message_ref_t,   "__objc_msgrefs");
+                GETSECT(_getObjc2ClassRefs,           Class,           "__objc_classrefs");
+                GETSECT(_getObjc2SuperRefs,           Class,           "__objc_superrefs");
+                GETSECT(_getObjc2ClassList,           classref_t,      "__objc_classlist");
+                GETSECT(_getObjc2NonlazyClassList,    classref_t,      "__objc_nlclslist");
+                GETSECT(_getObjc2CategoryList,        category_t *,    "__objc_catlist");
+                GETSECT(_getObjc2NonlazyCategoryList, category_t *,    "__objc_nlcatlist");
+                GETSECT(_getObjc2ProtocolList,        protocol_t *,    "__objc_protolist");
+                GETSECT(_getObjc2ProtocolRefs,        protocol_t *,    "__objc_protorefs");
+                GETSECT(getLibobjcInitializers,       Initializer,     "__objc_init_func");
+                 */
 #if __OBJC2__
                 size_t count;
                 _getObjc2SelectorRefs(hi, &count);
@@ -931,6 +948,13 @@ void _objc_init(void)
  _dyld_objc_notify_init(对应load_images回调)：当dyld初始化image后。OC调用类的+load方法，就是在这时进行的。
  _dyld_objc_notify_unmapped(对应unmap_image回调)：当dyld将images移除内存时。
  */
+    /*
+     runtime在入口点分别向dyld注册了三个事件监听：mapped oc sections， init oc section 以及 unmapped oc sections。
+
+     而这三个事件的顺序是: mapped oc sections -> init oc section -> unmapped oc sections
+
+     在mapped oc sections 事件中，我们已经看过其源码，runtime会依次读取Mach-O文件中的oc sections，并根据这些信息来初始化runtime环境。这其中就包括cateogry的加载。
+     */
     _dyld_objc_notify_register(&map_images, load_images, unmap_image);
 }
 

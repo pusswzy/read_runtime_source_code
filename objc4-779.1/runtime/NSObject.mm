@@ -95,6 +95,12 @@ struct RefcountMapValuePurgeable {
 
 // RefcountMap disguises its pointers because we 
 // don't want the table to act as a root for `leaks`.
+/// RefcountMap类型实际是DenseMap，这是一个模板类
+/*
+ key,DisguisedPtr<objc_object>类型。
+ value，size_t类型。
+ 是否清除为vlaue==0的数据，true。
+ */
 typedef objc::DenseMap<DisguisedPtr<objc_object>,size_t,RefcountMapValuePurgeable> RefcountMap;
 
 // Template parameters.
@@ -109,7 +115,7 @@ struct SideTable {
     SideTable() {
         memset(&weak_table, 0, sizeof(weak_table));
     }
-
+///!!!: 函数名称前面有~ 是析构函数
     ~SideTable() {
         _objc_fatal("Do not delete SideTable.");
     }
@@ -169,6 +175,7 @@ void SideTable::unlockTwo<DontHaveOld, DoHaveNew>
     lock2->unlock();
 }
 
+/// 全局啊
 static objc::ExplicitInit<StripedMap<SideTable>> SideTablesMap;
 
 static StripedMap<SideTable>& SideTables() {
@@ -239,8 +246,10 @@ objc_retain_autorelease(id obj)
 {
     return objc_autorelease(objc_retain(obj));
 }
-
-
+/*
+ runtime会通过 void objc_storeStrong(id *location, id obj) 方法来处理__strong 引用。 这里的location就是引用指针，即Student *student，而obj就是被引用的对象，即Student实例。
+ */
+///!!!: strong的本质
 void
 objc_storeStrong(id *location, id obj)
 {
@@ -903,6 +912,13 @@ private:
 
     static inline id *autoreleaseFast(id obj)
     {
+        /*
+         首先取出当前的hotPage，所谓hotPage，就是在autoreleasePage链表中正在使用的autoreleasePage节点。
+         如果有hotPage，且hotPage还没满，这将obj加入到page中。
+         如果有hotPage，但是已经满了，则进入page full逻辑（autoreleaseFullPage）。
+         如果没有hotPage，进入no page逻辑autoreleaseNoPage。
+
+         */
         AutoreleasePoolPage *page = hotPage();
         if (page && !page->full()) {
             return page->add(obj);
@@ -1235,6 +1251,7 @@ objc_object::clearDeallocating_slow()
 #warning 在这里清理弱引用拉
         weak_clear_no_lock(&table.weak_table, (id)this);
     }
+    ///!!!: 使用了sideTable记录引用计数 也会导致慢析构
     if (isa.has_sidetable_rc) {
         table.refcnts.erase(this);
     }
@@ -1399,6 +1416,7 @@ objc_object::sidetable_getExtraRC_nolock()
     SideTable& table = SideTables()[this];
     RefcountMap::iterator it = table.refcnts.find(this);
     if (it == table.refcnts.end()) return 0;
+    /// 引用计数的低2位不是用来记录引用次数的，而是分别表示对象是否有弱引用计数，以及是否在deallocing，这估计是为了兼容未优化的isa而设计的
     else return it->second >> SIDE_TABLE_RC_SHIFT;
 }
 

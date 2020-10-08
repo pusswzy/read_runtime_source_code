@@ -227,9 +227,9 @@ objc_object::initIsa(Class cls, bool nonpointer, bool hasCxxDtor)
     ASSERT(!isTaggedPointer()); 
     
     if (!nonpointer) {
-        /// 如果有isa_t
+        /// 如果没有启用isa 优化，则直接将cls赋值给isa.cls，来表明当前object 是哪个类的实例
         isa = isa_t((uintptr_t)cls);
-    } else {
+    } else { /// // 如果启用了isa 优化，则初始化isa的三个内容(1) isa基本的内容，包括nonpointer置1以及设置OC magic vaule (2)置位has_cxx_dtor (3) 记录对象所属类的信息。 通过 newisa.shiftcls = (uintptr_t)cls >> 3;
         ASSERT(!DisableNonpointerIsa);
         ASSERT(!cls->instancesRequireRawIsa());
         /// 没有 isa_t则直接初始化
@@ -457,6 +457,7 @@ objc_object::rootDealloc()
 inline id 
 objc_object::retain()
 {
+    /// 判断了好好多次啊 但是用的宏 也就是底层不判断么
     ASSERT(!isTaggedPointer());
 
     if (fastpath(!ISA()->hasCustomRR())) {
@@ -488,6 +489,7 @@ objc_object::rootTryRetain()
     return rootRetain(true, false) ? true : false;
 }
 
+///!!!: retain的本质
 ALWAYS_INLINE id 
 objc_object::rootRetain(bool tryRetain, bool handleOverflow)
 {
@@ -517,17 +519,20 @@ objc_object::rootRetain(bool tryRetain, bool handleOverflow)
             return nil;
         }
         uintptr_t carry;
-        newisa.bits = addc(newisa.bits, RC_ONE, 0, &carry);  // extra_rc++
+        
+        /// 采用了isa优化，做extra_rc++，同时检查是否extra_rc溢出，若溢出，则extra_rc减半，并将另一半转存至sidetable
+        newisa.bits = addc(newisa.bits, RC_ONE, 0, &carry);  // extra_rc++ 引用计数加1
 
-        if (slowpath(carry)) {
+        if (slowpath(carry)) { // 有carry值，表示extra_rc 溢出
             // newisa.extra_rc++ overflowed
-            if (!handleOverflow) {
+            if (!handleOverflow) { /// // 如果不处理溢出情况，则在这里会递归调用一次，再进来的时候，handleOverflow会被rootRetain_overflow设置为true，从而进入到下面的溢出处理流程
                 ClearExclusive(&isa.bits);
                 return rootRetain_overflow(tryRetain);
             }
             // Leave half of the retain counts inline and 
             // prepare to copy the other half to the side table.
             if (!tryRetain && !sideTableLocked) sidetable_lock();
+            // 进行溢出处理：逻辑很简单，先在extra_rc中留一半计数，同时把has_sidetable_rc设置为true，表明借用了sidetable，然后把另一半放到sidetable中
             sideTableLocked = true;
             transcribeToSideTable = true;
             newisa.extra_rc = RC_HALF;
@@ -535,7 +540,7 @@ objc_object::rootRetain(bool tryRetain, bool handleOverflow)
         }
     } while (slowpath(!StoreExclusive(&isa.bits, oldisa.bits, newisa.bits)));
 
-    if (slowpath(transcribeToSideTable)) {
+    if (slowpath(transcribeToSideTable)) { /// //isa的extra_rc溢出，将一半的refer count值放到sidetable中
         // Copy the other half of the retain counts to the side table.
         sidetable_addExtraRC_nolock(RC_HALF);
     }
@@ -741,15 +746,16 @@ objc_object::rootRetainCount()
     sidetable_lock();
     isa_t bits = LoadExclusive(&isa.bits);
     ClearExclusive(&isa.bits);
+    // case 2： 如果采用了优化的isa指针
     if (bits.nonpointer) {
         uintptr_t rc = 1 + bits.extra_rc;
-        if (bits.has_sidetable_rc) {
-            rc += sidetable_getExtraRC_nolock();
+        if (bits.has_sidetable_rc) { // 如果extra_rc不够大， 还需要读取sidetable中的数据
+            rc += sidetable_getExtraRC_nolock(); // 总引用计数= rc + sidetable count
         }
         sidetable_unlock();
         return rc;
     }
-
+// case 3：如果没采用优化的isa指针，则直接返回sidetable中的值
     sidetable_unlock();
     return sidetable_retainCount();
 }

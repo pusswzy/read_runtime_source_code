@@ -90,11 +90,14 @@ struct weak_entry_t {
         ///!!!: 这两个数组是用来存储弱引用该对象的指针的指针的
         struct {
             // 动态数组
-#warning 这里难道是3个*???
+#warning 这里难道是3个*??? 数组么 所以3个
             weak_referrer_t *referrers;
             uintptr_t        out_of_line_ness : 2;   ///< : 2是位域 只占两个bits 是否使用动态hash数组标记位
             uintptr_t        num_refs : PTR_MINUS_2; // hash数组中的元素个数
             uintptr_t        mask; // hash数组长度-1，会参与hash计算。（注意，这里是hash数组的长度，而不是元素个数。比如，数组长度可能是64，而元素个数仅存了2个）素个数）
+            /*
+             这个max_hash_displacement值是在每个元素插入的时候更新的，它总是记录在插入时，所发生的hash冲突的最大值。因此在查找时，hash冲突的次数肯定不会大于这个值。
+             */
             uintptr_t        max_hash_displacement; // 可能会发生的hash冲突的最大次数，用于判断是否出现了逻辑错误（hash表中的冲突次数绝不会超过改值）
         };
         

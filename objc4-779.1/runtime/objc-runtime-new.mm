@@ -1165,7 +1165,7 @@ static bool isBundleClass(Class cls)
     return cls->data()->ro->flags & RO_FROM_BUNDLE;
 }
 
-
+// 排序
 static void 
 fixupMethodList(method_list_t *mlist, bool bundleCopy, bool sort)
 {
@@ -1273,11 +1273,12 @@ attachCategories(Class cls, const locstamped_category_t *cats_list, uint32_t cat
         method_list_t *mlist = entry.cat->methodsForMeta(isMeta);
         if (mlist) {
             if (mcount == ATTACH_BUFSIZ) {
+                /// 方法列表必须要排序, 这也对应了查找method_t的二叉搜索
                 prepareMethodLists(cls, mlists, mcount, NO, fromBundle);
                 rw->methods.attachLists(mlists, mcount);
                 mcount = 0;
             }
-            /// lee: 从后面往前面塞??   [null, null, null, method_1, method_2]
+            /// lee: 从后面往前面塞??   [null, null, null, method_2, method_1]
             mlists[ATTACH_BUFSIZ - ++mcount] = mlist;
             fromBundle |= entry.hi->isBundle();
         }
@@ -1303,9 +1304,10 @@ attachCategories(Class cls, const locstamped_category_t *cats_list, uint32_t cat
     }
 
     if (mcount > 0) {
-        /// 这行语法没有看懂呢
+        // 方法排序 第二个参数告诉你从哪排序
         prepareMethodLists(cls, mlists + ATTACH_BUFSIZ - mcount, mcount, NO, fromBundle);
         rw->methods.attachLists(mlists + ATTACH_BUFSIZ - mcount, mcount);
+        /// flushCaches reset缓存
         if (flags & ATTACH_EXISTING) flushCaches(cls);
     }
 
@@ -3229,6 +3231,7 @@ readProtocol(protocol_t *newproto, Class protocol_class,
     }
 }
 
+// objcInit -> mapImage -> readImage
 /***********************************************************************
 * _read_images
 * Perform initial processing of the headers in the linked 
@@ -3486,6 +3489,7 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
             /// 一个一个分类添加么??? 是一个分类数组 🙅‍♂️
             for (i = 0; i < count; i++) {
                 category_t *cat = catlist[i];
+                /// 先调用remapClass(cat->cls)，并返回一个objc_class *对象cls。这一步的目的在于找到到category对应的类对象cls。
                 Class cls = remapClass(cat->cls);
                 locstamped_category_t lc{cat, hi};
                 
@@ -3548,6 +3552,7 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
                     if (cat->classMethods  ||  cat->protocols
                         ||  (hasClassProperties && cat->_classProperties))
                     {
+                        // 通过isa指针招待其元类对象
                         if (cls->ISA()->isRealized()) {
                             /// 注册分类到元类对象
                             attachCategories(cls->ISA(), &lc, 1, ATTACH_EXISTING | ATTACH_METACLASS);
