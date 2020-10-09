@@ -73,12 +73,22 @@ union isa_t {
     uintptr_t bits;
 #if defined(ISA_BITFIELD)
     struct {
-        ISA_BITFIELD;  // defined in isa.h
+        ISA_BITFIELD;  // defined in isa.h sb写法
+#   define ISA_BITFIELD                                                      \
+      uintptr_t nonpointer        : 1;                                       \
+      uintptr_t has_assoc         : 1;                                       \
+      uintptr_t has_cxx_dtor      : 1;                                       \
+      uintptr_t shiftcls          : 33; /*MACH_VM_MAX_ADDRESS 0x1000000000*/ \
+      uintptr_t magic             : 6;                                       \
+      uintptr_t weakly_referenced : 1;                                       \
+      uintptr_t deallocating      : 1;                                       \
+      uintptr_t has_sidetable_rc  : 1;                                       \
+      uintptr_t extra_rc          : 19
     };
 #endif
 };
 
-
+///!!!: 不能这个才是太子吧
 struct objc_object {
 private:
     isa_t isa;

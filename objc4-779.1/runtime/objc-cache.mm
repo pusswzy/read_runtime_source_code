@@ -643,6 +643,7 @@ void cache_t::bad_cache(id receiver, SEL sel, Class isa)
          "invalid object, or a memory error somewhere else.");
 }
 
+///!!!: ::应该就是命名空间吧
 ALWAYS_INLINE
 void cache_t::insert(Class cls, SEL sel, IMP imp, id receiver)
 {

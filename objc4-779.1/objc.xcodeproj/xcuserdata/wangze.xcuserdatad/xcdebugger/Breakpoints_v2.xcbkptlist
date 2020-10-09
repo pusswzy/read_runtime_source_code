@@ -30,9 +30,25 @@
             filePath = "runtime/objc-runtime-new.mm"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "3238"
-            endingLineNumber = "3238"
-            landmarkName = "_read_images(hList, hCount, totalClasses, unoptimizedTotalClasses)"
+            startingLineNumber = "3242"
+            endingLineNumber = "3242"
+            landmarkName = "unknown"
+            landmarkType = "0">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "4B7D5CAD-35A2-4FBF-9BCF-47E199B7E9A8"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "runtime/objc-runtime-new.mm"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "6511"
+            endingLineNumber = "6511"
+            landmarkName = "addMethod(cls, name, imp, types, replace)"
             landmarkType = "9">
          </BreakpointContent>
       </BreakpointProxy>

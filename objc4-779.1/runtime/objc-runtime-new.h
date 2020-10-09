@@ -703,7 +703,7 @@ struct class_ro_t {
     const char * name;
     method_list_t * baseMethodList;
     protocol_list_t * baseProtocols;
-#warning 成员变量到底t放在哪里????
+#warning 成员变量到底放在哪里????  应该是准确的值放在实例对象里面 成员变量的信息放在类对象或元类对象的ro里面
     const ivar_list_t * ivars;
 
     const uint8_t * weakIvarLayout;
@@ -893,6 +893,7 @@ class list_array_tt {
             setArray((array_t *)realloc(array(), array_t::byteSize(newCount)));
             array()->count = newCount;
             /// 首先会移动类原来的方法列表
+            ///!!!: memmove会更安全一点 如果dst<src 头插. 如果dst>src, 就会用尾插法.
             memmove(array()->lists + addedCount, array()->lists, 
                     oldCount * sizeof(array()->lists[0]));
             /// 然后会将分类里面的方法插入到头部 头插法 导致分类方法先行调用
@@ -990,22 +991,25 @@ class protocol_array_t :
     }
 };
 
-
+/*
+ objc_class 中包含class_data_bits_t, class_data_bits_t 中通过FAST_DATA_MASK获取指向class_rw_t类型的指针，而在class_rw_t中包含class_ro_t，类的核心const信息。
+ */
 struct class_rw_t {
     // Be warned that Symbolication knows the layout of this structure.
-    uint32_t flags;
+    uint32_t flags; /// 都有flags
     uint16_t version;
     uint16_t witness;
 
-    const class_ro_t *ro;
+    const class_ro_t *ro; ///< // 类不可修改的原始核心
 
+    ///下面三个array，method,property, protocol，可以被runtime 扩展，如Category
     method_array_t methods;
     property_array_t properties;
     protocol_array_t protocols;
-
+    /// 和继承相关的东西
     Class firstSubclass;
     Class nextSiblingClass;
-
+    /// Class对应的 符号名称
     char *demangledName;
 
 #if SUPPORT_INDEXED_ISA
@@ -1145,14 +1149,19 @@ public:
     }
 };
 
-
+///!!!: 这就是类对象也是一个对象的原因 继承
 struct objc_class : objc_object {
-    // Class ISA;
+    // Class ISA; 这里为啥注释了呢 因为继承objc_object了
     Class superclass;
     cache_t cache;             // formerly cache pointer and vtable
     class_data_bits_t bits;    // class_rw_t * plus custom rr/alloc flags
 
+    /// 这个data方法返回的是rw哦 不用直接操作bits了
     class_rw_t *data() const {
+        /*
+         在objc_class的data()方法最初返回的是const class_ro_t * 类型，也就是类的基本信息。因为在调用realizeClass方法前，Category定义的各种方法，属性还没有附加到class上，因此只能够返回类的基本信息。
+         而当我们调用realizeClass时，会在函数内部将Category中定义的各种扩展附加到class上，同时改写data()的返回值为class_rw_t *类型，核心代码如下：
+         */
         return bits.data();
     }
     void setData(class_rw_t *newData) {

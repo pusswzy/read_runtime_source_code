@@ -437,6 +437,7 @@ _class_resolveMethod(id inst, SEL sel, Class cls)
 * cls is the method whose cache should be filled. 
 * implementer is the class that owns the implementation in question.
 **********************************************************************/
+///!!!: 看看这注释写的
 static void
 log_and_fill_cache(Class cls, Class implementer, Method meth, SEL sel)
 {

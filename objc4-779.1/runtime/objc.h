@@ -46,6 +46,8 @@ struct objc_object {
 typedef struct objc_object *id;
 #endif
 
+///!!!: 不透明真就是不透明啊 它是一个不透明的定义，似乎苹果故意隐藏了它的实现。目前SEL仅是一个字符串。
+//这里要注意，即使消息的参数类型不(注意，不是指参数数量不同)或方法所属的类也不同，但只要方法名相同，SEL也是一样的。所以，SEL单独并不能作为唯一的Key，必须结合消息发送的目标Class，才能找到最终的IMP。
 /// An opaque type that represents a method selector.
 typedef struct objc_selector *SEL;
 

@@ -54,6 +54,7 @@ T* getDataSection(const headerType *mhdr, const char *sectname,
         return getDataSection<type>(hi->mhdr(), sectname, nil, outCount); \
     }
 
+///!!!: mach-O 对应的section
 //      function name                 content type     section name
 GETSECT(_getObjc2SelectorRefs,        SEL,             "__objc_selrefs"); 
 GETSECT(_getObjc2MessageRefs,         message_ref_t,   "__objc_msgrefs"); 

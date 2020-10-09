@@ -132,7 +132,7 @@ _objc_associations_init()
 {
     AssociationsManager::init();
 }
-
+/// get
 id
 _object_get_associative_reference(id object, const void *key)
 {
@@ -155,6 +155,7 @@ _object_get_associative_reference(id object, const void *key)
     return association.autoreleaseReturnedValue();
 }
 
+/// set
 void
 _object_set_associative_reference(id object, const void *key, id value, uintptr_t policy)
 {
