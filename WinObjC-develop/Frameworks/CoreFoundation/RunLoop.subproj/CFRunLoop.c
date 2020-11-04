@@ -1432,16 +1432,28 @@ static CFRunLoopRef __CFRunLoopCreate(pthread_t t) {
     return loop;
 }
 
+/// 全局静态字典 key:线程 value:runloop
 static CFMutableDictionaryRef __CFRunLoops = NULL;
 static CFLock_t loopsLock = CFLockInit;
 
+/// 获取线程里面的runloop
 // should only be called by Foundation
 // t==0 is a synonym for "main thread" that always works
+/*
+ RunLoop和Thread是一一对应的(key: pthread value:runLoop)
+ Thread默认是没有对应的RunLoop的，仅当主动调用Get方法时，才会创建
+ 所有Thread线程对应的RunLoop被存储在全局的__CFRunLoops字典中。同时，主线程在static CFRunLoopRef __main，子线程在TSD中，也存储了线程对应的RunLoop，用于快速查找
+ */
+
+/// 这里有一点要弄清，Thread和RunLoop不是包含关系，而是平等的对应关系。Thread的若干功能，是通过RunLoop实现的。
+
+
 CF_EXPORT CFRunLoopRef _CFRunLoopGet0(pthread_t t) {
     if (pthread_equal(t, kNilPthreadT)) {
     t = pthread_main_thread_np();
     }
     __CFLock(&loopsLock);
+    /// 获取全局静态字典
     if (!__CFRunLoops) {
         __CFUnlock(&loopsLock);
     CFMutableDictionaryRef dict = CFDictionaryCreateMutable(kCFAllocatorSystemDefault, 0, NULL, &kCFTypeDictionaryValueCallBacks);
@@ -1467,7 +1479,7 @@ CF_EXPORT CFRunLoopRef _CFRunLoopGet0(pthread_t t) {
         __CFUnlock(&loopsLock);
     CFRelease(newLoop);
     }
-    if (pthread_equal(t, pthread_self())) {
+    if (pthread_equal(t, pthread_self())) { /// 若当前调用线程和t是一个线程，则同时设置当前线程的TSD
         _CFSetTSD(__CFTSDKeyRunLoop, (void *)loop, NULL);
         if (0 == _CFGetTSD(__CFTSDKeyRunLoopCntr)) {
             _CFSetTSD(__CFTSDKeyRunLoopCntr, (void *)(PTHREAD_DESTRUCTOR_ITERATIONS-1), (void (*)(void *))__CFFinalizeRunLoop);
@@ -1571,9 +1583,10 @@ void _CFRunLoopSetCurrent(CFRunLoopRef rl) {
     }
 }
 #endif
-
+/// 获取主线程的runloop
 CFRunLoopRef CFRunLoopGetMain(void) {
     CHECK_FOR_FORK();
+    // 用静态变量 方便快速获取
     static CFRunLoopRef __main = NULL; // no retain needed
     if (!__main) __main = _CFRunLoopGet0(pthread_main_thread_np()); // no CAS needed
     return __main;
@@ -1581,6 +1594,7 @@ CFRunLoopRef CFRunLoopGetMain(void) {
 
 CFRunLoopRef CFRunLoopGetCurrent(void) {
     CHECK_FOR_FORK();
+    // 用线程特定数据TSD方便获取
     CFRunLoopRef rl = (CFRunLoopRef)_CFGetTSD(__CFTSDKeyRunLoop);
     if (rl) return rl;
     return _CFRunLoopGet0(pthread_self());
