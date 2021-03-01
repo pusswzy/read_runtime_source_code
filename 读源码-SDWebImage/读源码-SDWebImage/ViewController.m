@@ -8,8 +8,11 @@
 
 #import "ViewController.h"
 #import "Person.h"
+#import <AFNetworking/AFNetworking.h>
 #import <SDWebImage/UIImageView+WebCache.h>
-@interface ViewController () <NSURLSessionDataDelegate>
+@interface ViewController () <NSURLSessionDataDelegate> {
+    AFHTTPSessionManager *_maneger;
+}
 @property (weak, nonatomic) IBOutlet UIImageView *fullImageView;
 @property (nonatomic, strong) NSMutableData *mutableData;
 
@@ -27,6 +30,8 @@
     
     self.mutableData = [NSMutableData data];
 
+    AFHTTPSessionManager *maneger = [AFHTTPSessionManager manager];
+    _maneger = maneger;
 }
 
 
@@ -34,7 +39,23 @@
 {
 //    [self.fullImageView sd_setImageWithURL:@"http://b31.photo.store.qq.com/psu?/58f3eb9b-d155-4636-aa98-45f0e53b40cc/VOIQLgSNvyBqUv9WwKCrDuHqQUTau73fTadkY5Ezh10!/b/Yaz5GxNZQwAAYtyokhKhQwAA&a=32&b=31&bo=ngL2AQAAAAABAEw!&rf=viewer_4"];
     
-    [self testURLSession];
+//    [self testURLSession];
+    [self testAFN];
+    
+}
+
+- (void)testAFN {
+    
+    _maneger.responseSerializer = [AFImageResponseSerializer serializer];
+    
+    [_maneger GET:@"https://api.66mz8.com/api/rand.tbimg.php?format=jpg" parameters:nil headers:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+        NSLog(@"%@", responseObject);
+    } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+        
+    }];
+}
+- (IBAction)tre:(id)sender {
+    _maneger.requestSerializer.timeoutInterval = 1;
 }
 
 
@@ -61,7 +82,6 @@
     */
     NSURLSessionDataTask *task = [session dataTaskWithRequest:request];
     [task resume];
-    
 }
 
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {

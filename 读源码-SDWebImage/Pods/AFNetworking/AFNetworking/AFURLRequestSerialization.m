@@ -118,10 +118,12 @@ FOUNDATION_EXPORT NSArray * AFQueryStringPairsFromKeyAndValue(NSString *key, id 
 
 NSString * AFQueryStringFromParameters(NSDictionary *parameters) {
     NSMutableArray *mutablePairs = [NSMutableArray array];
+    // 将parameters中的每个元素转换为一系列AFQueryStringPair类型，并遍历之。
     for (AFQueryStringPair *pair in AFQueryStringPairsFromDictionary(parameters)) {
+        // 将每个AFQueryStringPair 转换为NSString,并存储到mutablePairs 数组中
         [mutablePairs addObject:[pair URLEncodedStringValue]];
     }
-
+    // 将 mutablePairs 数组中的每个元素，通过@"&"连接成整体，并返回该字符串
     return [mutablePairs componentsJoinedByString:@"&"];
 }
 
@@ -140,7 +142,7 @@ NSArray * AFQueryStringPairsFromKeyAndValue(NSString *key, id value) {
         for (id nestedKey in [dictionary.allKeys sortedArrayUsingDescriptors:@[ sortDescriptor ]]) {
             id nestedValue = dictionary[nestedKey];
             if (nestedValue) {
-                [mutableQueryStringComponents addObjectsFromArray:AFQueryStringPairsFromKeyAndValue((key ? [NSString stringWithFormat:@"%@[%@]", key, nestedKey] : nestedKey), nestedValue)];
+                [mutableQueryStringComponents addObjectsFromArray:AFQueryStringPairsFromKeyAndValue((key ? [NSString stringWithFormat:@"%@[%@]", key, nestedKey] : nestedKey), nestedValue)]; // 继续递归， 将value中的key作为key，valuez的key对应的nestedVaule作为vaule
             }
         }
     } else if ([value isKindOfClass:[NSArray class]]) {
@@ -157,7 +159,7 @@ NSArray * AFQueryStringPairsFromKeyAndValue(NSString *key, id value) {
         [mutableQueryStringComponents addObject:[[AFQueryStringPair alloc] initWithField:key value:value]];
     }
 
-    return mutableQueryStringComponents;
+    return mutableQueryStringComponents; // 最终返回的是AFQueryStringPair的数组 (包含了非集合态的Key 和 value)
 }
 
 #pragma mark -
@@ -364,16 +366,19 @@ forHTTPHeaderField:(NSString *)field
     NSURL *url = [NSURL URLWithString:URLString];
 
     NSParameterAssert(url);
-
+    // 1. 通过init 方法设置 HTTP请求 的URL
     NSMutableURLRequest *mutableRequest = [[NSMutableURLRequest alloc] initWithURL:url];
+    // 2. 通过 HTTPMethod 属性设置 HTTP请求 的请求方法
     mutableRequest.HTTPMethod = method;
 
+    // 3.设置mutableRequest 对应的属性值。这是通过KVO用户设置相关的属性操作
     for (NSString *keyPath in AFHTTPRequestSerializerObservedKeyPaths()) {
         if ([self.mutableObservedChangedKeyPaths containsObject:keyPath]) {
             [mutableRequest setValue:[self valueForKeyPath:keyPath] forKey:keyPath];
         }
     }
 
+    // 4. 将URL参数附加到 request 中，并返回request的copy值
     mutableRequest = [[self requestBySerializingRequest:mutableRequest withParameters:parameters error:error] mutableCopy];
 
 	return mutableRequest;
@@ -479,7 +484,7 @@ forHTTPHeaderField:(NSString *)field
     NSParameterAssert(request);
 
     NSMutableURLRequest *mutableRequest = [request mutableCopy];
-
+    // 根据request headers, 设置request header
     [self.HTTPRequestHeaders enumerateKeysAndObjectsUsingBlock:^(id field, id value, BOOL * __unused stop) {
         if (![request valueForHTTPHeaderField:field]) {
             [mutableRequest setValue:value forHTTPHeaderField:field];
@@ -487,8 +492,9 @@ forHTTPHeaderField:(NSString *)field
     }];
 
     NSString *query = nil;
+    // 格式化querystring， 将传入的parameters（AF默认是字典格式），转换为一个NSString
     if (parameters) {
-        if (self.queryStringSerialization) {
+        if (self.queryStringSerialization) { // 如果用户提供了queryString的Serialization block，则让用户自定义query string的格式
             NSError *serializationError;
             query = self.queryStringSerialization(request, parameters, &serializationError);
 
@@ -500,19 +506,19 @@ forHTTPHeaderField:(NSString *)field
                 return nil;
             }
         } else {
-            switch (self.queryStringSerializationStyle) {
+            switch (self.queryStringSerializationStyle) { // 如果用户没有自定义参数格式，则会走这里.AF默认仅提供了一种query stirng 格式：AFHTTPRequestQueryStringDefaultStyle
                 case AFHTTPRequestQueryStringDefaultStyle:
-                    query = AFQueryStringFromParameters(parameters);
+                    query = AFQueryStringFromParameters(parameters); // query string是这种样式的 @"user=Tim&age=12&sex=man"
                     break;
             }
         }
     }
 
-    if ([self.HTTPMethodsEncodingParametersInURI containsObject:[[request HTTPMethod] uppercaseString]]) {
+    if ([self.HTTPMethodsEncodingParametersInURI containsObject:[[request HTTPMethod] uppercaseString]]) { // 默认 GET, HEAD, DELETE会走这里（参数会放置到http URL中）
         if (query && query.length > 0) {
             mutableRequest.URL = [NSURL URLWithString:[[mutableRequest.URL absoluteString] stringByAppendingFormat:mutableRequest.URL.query ? @"&%@" : @"?%@", query]];
         }
-    } else {
+    } else { // 如果不是GET, HEAD, DELETE方法，会走这里。(参数将使用form格式，放置到http body中)
         // #2864: an empty string is a valid x-www-form-urlencoded payload
         if (!query) {
             query = @"";
