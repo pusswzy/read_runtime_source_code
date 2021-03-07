@@ -71,6 +71,9 @@ union isa_t {
 
     Class cls;
     uintptr_t bits;
+    /*
+     isa_t 是一个联合，可以表示Class cls或uintptr_t bits类型。实际上在OC 2.0里面，多数时间用的是uintptr_t bits。bits是一个64位的数据，每一位或几位都表示了关于当前对象的信息。
+     */
 #if defined(ISA_BITFIELD)
     struct {
         ISA_BITFIELD;  // defined in isa.h sb写法

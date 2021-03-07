@@ -509,6 +509,7 @@ void initializeNonMetaClass(Class cls)
     // Try to atomically set CLS_INITIALIZING.
     SmallVector<_objc_willInitializeClassCallback, 1> localWillInitializeFuncs;
     {
+        // 2. 通过加锁来设置 RW_INITIALIZING 标志位
         monitor_locker_t lock(classInitLock);
         if (!cls->isInitialized() && !cls->isInitializing()) {
             cls->setInitializing();
@@ -520,6 +521,7 @@ void initializeNonMetaClass(Class cls)
     }
     
     if (reallyInitialize) {
+        /// 正在初始化
         // We successfully set the CLS_INITIALIZING bit. Initialize the class.
         
         // Record that we're initializing this class so we can message it.
@@ -536,40 +538,13 @@ void initializeNonMetaClass(Class cls)
 
         // Send the +initialize message.
         // Note that +initialize is sent to the superclass (again) if 
-        // this class doesn't implement +initialize. 2157218
-        if (PrintInitializing) {
-            _objc_inform("INITIALIZE: thread %p: calling +[%s initialize]",
-                         objc_thread_self(), cls->nameForLogging());
-        }
-
-        // Exceptions: A +initialize call that throws an exception 
-        // is deemed to be a complete and successful +initialize.
-        //
-        // Only __OBJC2__ adds these handlers. !__OBJC2__ has a
-        // bootstrapping problem of this versus CF's call to
-        // objc_exception_set_functions().
-#if __OBJC2__
-        @try
-#endif
+        // this class doesn't implement +initialize. 2157218   父类有可能会被调用多次, 因为子类方法没有实现initialize
+ 
         {
+            // 消息发送
             callInitialize(cls);
+        }
 
-            if (PrintInitializing) {
-                _objc_inform("INITIALIZE: thread %p: finished +[%s initialize]",
-                             objc_thread_self(), cls->nameForLogging());
-            }
-        }
-#if __OBJC2__
-        @catch (...) {
-            if (PrintInitializing) {
-                _objc_inform("INITIALIZE: thread %p: +[%s initialize] "
-                             "threw an exception",
-                             objc_thread_self(), cls->nameForLogging());
-            }
-            @throw;
-        }
-        @finally
-#endif
         {
             // Done initializing.
             lockAndFinishInitializing(cls, supercls);
@@ -584,6 +559,7 @@ void initializeNonMetaClass(Class cls)
         // It's ok if INITIALIZING changes to INITIALIZED while we're here, 
         //   because we safely check for INITIALIZED inside the lock 
         //   before blocking.
+        // 5. 当前线程正在初始化当前类，直接返回，否则，会等待其它线程初始化结束后，再返回
         if (_thisThreadIsInitializingClass(cls)) {
             return;
         } else if (!MultithreadedForkChild) {

@@ -72,7 +72,7 @@ objc_object::isClass()
 
 
 #if SUPPORT_TAGGED_POINTERS
-
+// object_getClass的实现
 inline Class 
 objc_object::getIsa() 
 {
@@ -164,7 +164,7 @@ inline Class
 objc_object::ISA() 
 {
     ASSERT(!isTaggedPointer()); 
-#if SUPPORT_INDEXED_ISA
+#if SUPPORT_INDEXED_ISA 默认为0
     if (isa.nonpointer) {
         uintptr_t slot = isa.indexcls;
         return classForIndex((unsigned)slot);
@@ -211,7 +211,9 @@ objc_object::initProtocolIsa(Class cls)
     return initClassIsa(cls);
 }
 
-inline void 
+// alloc调用calloc分配内存给id指针后 会调用到这个方法
+// ::是告诉编译器这个函数属于哪个结构体
+inline void
 objc_object::initInstanceIsa(Class cls, bool hasCxxDtor)
 {
     ASSERT(!cls->instancesRequireRawIsa());
@@ -227,7 +229,7 @@ objc_object::initIsa(Class cls, bool nonpointer, bool hasCxxDtor)
     ASSERT(!isTaggedPointer()); 
     
     if (!nonpointer) {
-        /// 如果没有启用isa 优化，则直接将cls赋值给isa.cls，来表明当前object 是哪个类的实例
+        /// 如果没有启用isa 优化，则直接将cls赋值给isa.cls，来表明当前object 是哪个类的实例 牛逼!
         isa = isa_t((uintptr_t)cls);
     } else { /// // 如果启用了isa 优化，则初始化isa的三个内容(1) isa基本的内容，包括nonpointer置1以及设置OC magic vaule (2)置位has_cxx_dtor (3) 记录对象所属类的信息。 通过 newisa.shiftcls = (uintptr_t)cls >> 3;
         ASSERT(!DisableNonpointerIsa);

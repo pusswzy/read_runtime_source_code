@@ -1149,7 +1149,10 @@ public:
     }
 };
 
-///!!!: 这就是类对象也是一个对象的原因 继承
+///!!!: 这就是类对象也是一个对象的原因 继承 太子2
+/*
+ typedef struct objc_class *Class;
+ */
 struct objc_class : objc_object {
     // Class ISA; 这里为啥注释了呢 因为继承objc_object了
     Class superclass;
