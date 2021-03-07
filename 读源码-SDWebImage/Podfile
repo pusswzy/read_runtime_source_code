@@ -8,4 +8,5 @@ target '读源码-SDWebImage' do
   # Pods for 读源码-SDWebImage
 pod 'SDWebImage'
 pod 'YYKit'
+pod 'AFNetworking'
 end
