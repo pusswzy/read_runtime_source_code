@@ -468,11 +468,6 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
         preopt_init();
     }
 
-    if (PrintImages) {
-        _objc_inform("IMAGES: processing %u newly-mapped images...\n", mhCount);
-    }
-
-
     // Find all images with Objective-C metadata.
     hCount = 0;
 
@@ -531,15 +526,6 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
             }
             
             hList[hCount++] = hi;
-            
-            if (PrintImages) {
-                _objc_inform("IMAGES: loading image for %s%s%s%s%s\n", 
-                             hi->fname(),
-                             mhdr->filetype == MH_BUNDLE ? " (bundle)" : "",
-                             hi->info()->isReplacement() ? " (replacement)" : "",
-                             hi->info()->hasCategoryClassProperties() ? " (has class properties)" : "",
-                             hi->info()->optimizedByDyld()?" (preoptimized)":"");
-            }
         }
     }
 
@@ -552,57 +538,6 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
     if (firstTime) {
         sel_init(selrefCount);
         arr_init();
-
-#if SUPPORT_GC_COMPAT
-        // Reject any GC images linked to the main executable.
-        // We already rejected the app itself above.
-        // Images loaded after launch will be rejected by dyld.
-
-        for (uint32_t i = 0; i < hCount; i++) {
-            auto hi = hList[i];
-            auto mh = hi->mhdr();
-            if (mh->filetype != MH_EXECUTE  &&  shouldRejectGCImage(mh)) {
-                _objc_fatal_with_reason
-                    (OBJC_EXIT_REASON_GC_NOT_SUPPORTED, 
-                     OS_REASON_FLAG_CONSISTENT_FAILURE, 
-                     "%s requires Objective-C garbage collection "
-                     "which is no longer supported.", hi->fname());
-            }
-        }
-#endif
-
-#if TARGET_OS_OSX
-        // Disable +initialize fork safety if the app is too old (< 10.13).
-        // Disable +initialize fork safety if the app has a
-        //   __DATA,__objc_fork_ok section.
-
-        if (dyld_get_program_sdk_version() < DYLD_MACOSX_VERSION_10_13) {
-            DisableInitializeForkSafety = true;
-            if (PrintInitializing) {
-                _objc_inform("INITIALIZE: disabling +initialize fork "
-                             "safety enforcement because the app is "
-                             "too old (SDK version " SDK_FORMAT ")",
-                             FORMAT_SDK(dyld_get_program_sdk_version()));
-            }
-        }
-
-        for (uint32_t i = 0; i < hCount; i++) {
-            auto hi = hList[i];
-            auto mh = hi->mhdr();
-            if (mh->filetype != MH_EXECUTE) continue;
-            unsigned long size;
-            if (getsectiondata(hi->mhdr(), "__DATA", "__objc_fork_ok", &size)) {
-                DisableInitializeForkSafety = true;
-                if (PrintInitializing) {
-                    _objc_inform("INITIALIZE: disabling +initialize fork "
-                                 "safety enforcement because the app has "
-                                 "a __DATA,__objc_fork_ok section");
-                }
-            }
-            break;  // assume only one MH_EXECUTE image
-        }
-#endif
-
     }
 
     if (hCount > 0) {

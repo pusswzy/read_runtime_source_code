@@ -51,11 +51,12 @@ typedef struct objc_object *id;
 /// An opaque type that represents a method selector.
 typedef struct objc_selector *SEL;
 
+///!!!: IMP的实现 函数指针
 /// A pointer to the function of a method implementation. 
 #if !OBJC_OLD_DISPATCH_PROTOTYPES
 typedef void (*IMP)(void /* id, SEL, ... */ ); 
 #else
-typedef id _Nullable (*IMP)(id _Nonnull, SEL _Nonnull, ...); 
+typedef id _Nullable (*IMP)(id _Nonnull, SEL _Nonnull, ...); /// 不限制参数的发方法
 #endif
 
 /// Type to represent a boolean value.
