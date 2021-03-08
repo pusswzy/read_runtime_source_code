@@ -230,7 +230,8 @@ static bool call_category_loads(void)
         if (!cat) continue;
 
         cls = _category_getClass(cat);
-        // 类调用完成 分类才可以调用
+
+        /// 类调用完load 分类才可以调用
         if (cls  &&  cls->isLoadable()) {
             (*load_method)(cls, @selector(load));
             cats[i].cat = nil;

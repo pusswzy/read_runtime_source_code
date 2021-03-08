@@ -30,9 +30,9 @@
             filePath = "runtime/objc-runtime-new.mm"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "6485"
-            endingLineNumber = "6485"
-            landmarkName = "addMethod(cls, name, imp, types, replace)"
+            startingLineNumber = "6481"
+            endingLineNumber = "6481"
+            landmarkName = "class_conformsToProtocol(cls, proto_gen)"
             landmarkType = "9">
          </BreakpointContent>
       </BreakpointProxy>

@@ -353,15 +353,19 @@ _objc_debug_taggedpointer_ext_classes:
 	.fill 256, 8, 0
 #endif
 /// ✨ 消息发送的开始
+// objc_msgSend !!!!!!!!✨
+>>>>>>> 30f9ba944c6e12a2f0aaa69e6549a9dfbfac4db7
 	ENTRY _objc_msgSend
 	UNWIND _objc_msgSend, NoFrame
 
+// 系统通过cmp x0, #0检测receiver是否为nil。如果为nil，则进入LNilOrTagged，返回0；
 	cmp	p0, #0			// nil check and tagged pointer check
 #if SUPPORT_TAGGED_POINTERS
 	b.le	LNilOrTagged		//  (MSB tagged pointer looks negative)
 #else
 	b.eq	LReturnZero
 #endif
+// 如果不为nil，则现将receiver的isa存入x13寄存器；
 	ldr	p13, [x0]		// p13 = isa
 	GetClassFromIsa_p16 p13		// p16 = class
 LGetIsaDone:
@@ -536,13 +540,15 @@ LLookup_Nil:
 	AuthenticateLR
 
 .endmacro
-
+// objc_msgSend_uncached 也是汇编，实现如下：
 	STATIC_ENTRY __objc_msgSend_uncached
 	UNWIND __objc_msgSend_uncached, FrameWithNoSaves
 
 	// THIS IS NOT A CALLABLE C FUNCTION
 	// Out-of-band p16 is the class to search
-	
+	/*
+     其内部调用了MethodTableLookup， MethodTableLookup是一个汇编的宏定义，其内部会调用C语言函数_class_lookupMethodAndLoadCache3：
+     */
 	MethodTableLookup
 	TailCallFunctionPointer x17
 

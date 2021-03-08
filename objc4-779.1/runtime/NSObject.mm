@@ -2055,7 +2055,13 @@ __attribute__((objc_nonlazy_class))
 - (Class)superclass {
     return [self class]->superclass;
 }
-
+/*
+ inline Class
+ objc_object::ISA()
+ {
+     return (Class)(isa.bits & ISA_MASK);
+ }
+ */
 + (BOOL)isMemberOfClass:(Class)cls {
     return self->ISA() == cls;
 }

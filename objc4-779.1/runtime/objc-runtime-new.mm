@@ -3239,7 +3239,7 @@ readProtocol(protocol_t *newproto, Class protocol_class,
 * Perform initial processing of the headers in the linked 
 * list beginning with headerList. 
 *
-* Called by: map_images_nolock
+* Called by: map_images_nolock 这里有了从哪调用的
 *
 * Locking: runtimeLock acquired by map_images
 **********************************************************************/
@@ -3519,7 +3519,7 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
                         }
                     }
                     
-                    /// lee: 类对象现在OC也不支持
+                    /// lee: 类对象现在OC也不支持 支持了已经
                     if (cat->classMethods  ||  cat->protocols
                         ||  (hasClassProperties && cat->_classProperties))
                     {
@@ -5946,6 +5946,7 @@ resolveMethod_locked(id inst, SEL sel, Class cls, int behavior)
 
     // chances are that calling the resolver have populated the cache
     // so attempt using it
+    // 还会转回去
     return lookUpImpOrForward(inst, sel, cls, behavior | LOOKUP_CACHE);
 }
 
@@ -5971,7 +5972,7 @@ log_and_fill_cache(Class cls, IMP imp, SEL sel, id receiver, Class implementer)
     cache_fill(cls, sel, imp, receiver);
 }
 
-
+// 重要的方法 ✨星星
 /***********************************************************************
 * lookUpImpOrForward.
 * The standard IMP lookup. 
@@ -5984,6 +5985,14 @@ log_and_fill_cache(Class cls, IMP imp, SEL sel, id receiver, Class implementer)
 *   must be converted to _objc_msgForward or _objc_msgForward_stret.
 *   If you don't want forwarding at all, use LOOKUP_NIL.
 **********************************************************************/
+/* method lookup */
+enum {
+    LOOKUP_INITIALIZE = 1, 0
+    LOOKUP_RESOLVER = 2, 1>>1
+    LOOKUP_CACHE = 4, 1>>2
+    LOOKUP_NIL = 8, 1>>3
+};
+
 IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
 {
     const IMP forward_imp = (IMP)_objc_msgForward_impcache;
@@ -5993,6 +6002,7 @@ IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
     runtimeLock.assertUnlocked();
 
     // Optimistic cache lookup
+    // 去查找缓存
     if (fastpath(behavior & LOOKUP_CACHE)) {
         imp = cache_getImp(cls, sel);
         if (imp) goto done_nolock;
@@ -6018,12 +6028,13 @@ IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
     //
     // TODO: this check is quite costly during process startup.
     checkIsKnownClass(cls);
-
+    //  如果class没有被relize，先relize
     if (slowpath(!cls->isRealized())) {
         cls = realizeClassMaybeSwiftAndLeaveLocked(cls, runtimeLock);
         // runtimeLock may have been dropped but is now locked again
     }
 
+    // +initialize的调用
     if (slowpath((behavior & LOOKUP_INITIALIZE) && !cls->isInitialized())) {
         cls = initializeAndLeaveLocked(cls, inst, runtimeLock);
         // runtimeLock may have been dropped but is now locked again
@@ -6053,7 +6064,7 @@ IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
         }
 
         if (slowpath((curClass = curClass->superclass) == nil)) {
-            ///!!!: 基类找不到就消息转发了
+            ///!!!: 找不到父类就消息转发了
             // No implementation found, and method resolver didn't help.
             // Use forwarding.
             imp = forward_imp;
@@ -6081,9 +6092,10 @@ IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
     }
 
     // No implementation found. Try method resolver once.
-    /// 尝试一次方法解析
+    /// 尝试一次方法解析  看样确实没啥人用slowpath啊
     if (slowpath(behavior & LOOKUP_RESOLVER)) {
-        behavior ^= LOOKUP_RESOLVER;
+        behavior ^= LOOKUP_RESOLVER; // ^= 按位异或。 逻辑是按位,有1取反,有0保持
+        // 方法解析完成后 还会返回来调用lookUpImpOrForward
         return resolveMethod_locked(inst, sel, cls, behavior);
     }
 
@@ -7395,7 +7407,7 @@ objc_constructInstance(Class cls, void *bytes)
 * takes no branch.
 **********************************************************************/
 static ALWAYS_INLINE id
-///!!!: 实例对象创建方法
+///!!!: 实例对象创建方法  class -> id
 _class_createInstanceFromZone(Class cls, size_t extraBytes, void *zone,
                               int construct_flags = OBJECT_CONSTRUCT_NONE,
                               bool cxxConstruct = true,

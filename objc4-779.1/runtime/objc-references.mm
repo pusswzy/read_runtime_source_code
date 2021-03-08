@@ -109,8 +109,8 @@ class AssociationsManager {
     static Storage _mapStorage;
 
 public:
-    AssociationsManager()   { AssociationsManagerLock.lock(); }
-    ~AssociationsManager()  { AssociationsManagerLock.unlock(); }
+    AssociationsManager()   { AssociationsManagerLock.lock(); }  // 创建方法
+    ~AssociationsManager()  { AssociationsManagerLock.unlock(); } //~ 析构方法
 
     AssociationsHashMap &get() {
         return _mapStorage.get();
@@ -167,11 +167,11 @@ _object_set_associative_reference(id object, const void *key, id value, uintptr_
     DisguisedPtr<objc_object> disguised{(objc_object *)object};
     ObjcAssociation association{policy, value};
 
-    // retain the new value (if any) outside the lock.
+    // retain the new value (if any) outside the lock. 如果使用的strong策略就会retain, 如果使用的是copy策略就会发送copy方法
     association.acquireValue();
 
     {
-        AssociationsManager manager;
+        AssociationsManager manager; // 这是一个单例，内部保存一个全局的static AssociationsHashMap *_map; 用于保存所有的关联对象。
         AssociationsHashMap &associations(manager.get());
 
         if (value) {
