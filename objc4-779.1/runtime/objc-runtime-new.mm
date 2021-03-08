@@ -1165,7 +1165,7 @@ static bool isBundleClass(Class cls)
     return cls->data()->ro->flags & RO_FROM_BUNDLE;
 }
 
-// 排序
+/// 排序
 static void 
 fixupMethodList(method_list_t *mlist, bool bundleCopy, bool sort)
 {
@@ -1222,6 +1222,7 @@ prepareMethodLists(Class cls, method_list_t **addedLists, int addedCount,
         // Fixup selectors if necessary
         ///!!!: 这个fixup就是表示是否排好序没
         if (!mlist->isFixedUp()) {
+            // 排序
             fixupMethodList(mlist, methodsFromBundle, true/*sort*/);
         }
     }
@@ -1254,6 +1255,7 @@ attachCategories(Class cls, const locstamped_category_t *cats_list, uint32_t cat
      * and call attachLists on the chunks. attachLists prepends the
      * lists, so the final result is in the expected order.
      */
+    ///!!!: 节省内存 一般一个类很少会有超过64个分类 就直接在栈上分配的内存 而没有malloc
     constexpr uint32_t ATTACH_BUFSIZ = 64;
     method_list_t   *mlists[ATTACH_BUFSIZ];
     property_list_t *proplists[ATTACH_BUFSIZ];
@@ -3284,34 +3286,6 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
         }
 # endif
 
-# if TARGET_OS_OSX
-        // Disable non-pointer isa if the app is too old
-        // (linked before OS X 10.11)
-        if (dyld_get_program_sdk_version() < DYLD_MACOSX_VERSION_10_11) {
-            DisableNonpointerIsa = true;
-            if (PrintRawIsa) {
-                _objc_inform("RAW ISA: disabling non-pointer isa because "
-                             "the app is too old (SDK version " SDK_FORMAT ")",
-                             FORMAT_SDK(dyld_get_program_sdk_version()));
-            }
-        }
-
-        // Disable non-pointer isa if the app has a __DATA,__objc_rawisa section
-        // New apps that load old extensions may need this.
-        for (EACH_HEADER) {
-            if (hi->mhdr()->filetype != MH_EXECUTE) continue;
-            unsigned long size;
-            if (getsectiondata(hi->mhdr(), "__DATA", "__objc_rawisa", &size)) {
-                DisableNonpointerIsa = true;
-                if (PrintRawIsa) {
-                    _objc_inform("RAW ISA: disabling non-pointer isa because "
-                                 "the app has a __DATA,__objc_rawisa section");
-                }
-            }
-            break;  // assume only one MH_EXECUTE image
-        }
-# endif
-
 #endif
 
         if (DisableTaggedPointers) {
@@ -3494,14 +3468,8 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
                 locstamped_category_t lc{cat, hi};
                 
                 if (!cls) {
-                    /// lee: 类丢回事呢
                     // Category's target class is missing (probably weak-linked).
                     // Ignore the category.
-                    if (PrintConnecting) {
-                        _objc_inform("CLASS: IGNORING category \?\?\?(%s) %p with "
-                                     "missing weak-linked target class",
-                                     cat->name, cat);
-                    }
                     continue;
                 }
                 
@@ -3535,6 +3503,9 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
                             else return protocols;
                         }
                      */
+                    
+                    /// 本质上就是调用attachCategories 将分类的内容绑定到类/元类上
+                    
                     if (cat->instanceMethods ||  cat->protocols
                         ||  cat->instanceProperties)
                     {
@@ -3693,19 +3664,21 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
 // cls must already be connected.
 static void schedule_class_load(Class cls)
 {
-    if (!cls) return;
-    ASSERT(cls->isRealized());  // _read_images should realize
+    if (!cls) return; // cls 为 nil，这会出现在根类的时候，结束递归
+    ASSERT(cls->isRealized());  // cls 必须已经是 realize 的，即 realize 在 load 之前，
+    // realize 是在 _read_images() 中做的
     /*
-     // class +load has been called 通过这个宏放置重复调用load方法😄
+     // class +load has been called 通过这个宏防止重复调用load方法😄
      #define RW_LOADED             (1<<23)
      */
     if (cls->data()->flags & RW_LOADED) return;
 
     // Ensure superclass-first ordering 递归调用自己的父类
     schedule_class_load(cls->superclass);
-    // 将cls放入loadable_classes数组中
+    // 将 cls 类添加到 loadable_classes 列表中
+    // 其中会检查 cls 类是否确实有 +load 方法，只有拥有 +load 方法，才会将其添加到 loadable_classes 列表
     add_class_to_loadable_list(cls);
-    cls->setInfo(RW_LOADED); 
+    cls->setInfo(RW_LOADED);  // 将 cls 类设置为已经 load
 }
 
 // Quick scan for +load methods that doesn't take a lock.
@@ -5837,6 +5810,7 @@ Method class_getInstanceMethod(Class cls, SEL sel)
 #warning fixme build and search caches
         
     ///!!!: 调用了一次动态方法解析 是为了给机会resolver
+    // 也就是会从继承链条查找这个方法
     // Search method lists, try method resolver, etc.
     lookUpImpOrForward(nil, sel, cls, LOOKUP_RESOLVER);
 
@@ -6107,7 +6081,7 @@ IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
     }
 
     // No implementation found. Try method resolver once.
-    /// 这个是啥?
+    /// 尝试一次方法解析
     if (slowpath(behavior & LOOKUP_RESOLVER)) {
         behavior ^= LOOKUP_RESOLVER;
         return resolveMethod_locked(inst, sel, cls, behavior);
@@ -6520,7 +6494,11 @@ addMethod(Class cls, SEL name, IMP imp, const char *types, bool replace)
     ASSERT(cls->isRealized());
 
     method_t *m;
-    ///!!!: 最重要的是这个方法也不会去superclass里面进行寻找
+    // class_replaceMethod replace为true
+    // class_addMethod     replace为false
+    /*
+     如果类/元类有方法实现(能获取到method), 那么当replace为false的时候会直接返回IMP, 当replace为true的时候会替换成新的IMP, 返回旧的IMP
+     */
     if ((m = getMethodNoSuper_nolock(cls, name))) {
         // already exists
         if (!replace) {
@@ -6531,6 +6509,7 @@ addMethod(Class cls, SEL name, IMP imp, const char *types, bool replace)
         }
     } else {
         // fixme optimize
+        // 方法不存在, 则在class的方法列表中添加方法, 并返回nil
         method_list_t *newlist;
         newlist = (method_list_t *)calloc(sizeof(*newlist), 1);
         newlist->entsizeAndFlags = 
@@ -6543,7 +6522,8 @@ addMethod(Class cls, SEL name, IMP imp, const char *types, bool replace)
         prepareMethodLists(cls, &newlist, 1, NO, NO);
         cls->data()->methods.attachLists(&newlist, 1);
         flushCaches(cls);
-
+        
+        // 返回NO 取反相当于添加成功了
         result = nil;
     }
 

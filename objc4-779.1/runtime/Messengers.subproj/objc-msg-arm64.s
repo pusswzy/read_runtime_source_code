@@ -352,7 +352,7 @@ _objc_debug_taggedpointer_classes:
 _objc_debug_taggedpointer_ext_classes:
 	.fill 256, 8, 0
 #endif
-
+/// ✨ 消息发送的开始
 	ENTRY _objc_msgSend
 	UNWIND _objc_msgSend, NoFrame
 

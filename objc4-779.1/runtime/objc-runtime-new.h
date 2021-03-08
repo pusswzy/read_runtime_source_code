@@ -538,7 +538,7 @@ struct method_t {
     SEL name;
     const char *types;
     MethodListIMP imp;
-
+///!!!: 就是根据方法的SEL进行的排序
     struct SortBySELAddress :
         public std::binary_function<const method_t&,
                                     const method_t&, bool>
@@ -754,6 +754,8 @@ struct class_ro_t {
 * countLists/beginLists/endLists iterate the metadata lists
 * count/begin/end iterate the underlying metadata elements
 **********************************************************************/
+
+// 可以参考https://jianli2017.top/wiki/IOS/Runtime/objc/5list_array_tt/
 template <typename Element, typename List>
 class list_array_tt {
     struct array_t {
@@ -824,6 +826,10 @@ class list_array_tt {
     }
 
     array_t *array() {
+        /*
+         (lldb) p/t ~1
+         (int) $11 = 0b11111111111111111111111111111110
+         */
         return (array_t *)(arrayAndFlag & ~1);
     }
 
@@ -863,7 +869,7 @@ class list_array_tt {
             return 0;
         }
     }
-
+// rw里面的方法列表 协议列表 属性列表都是继承的这个结构体
     List** beginLists() {
         if (hasArray()) {
             return array()->lists;
@@ -881,19 +887,26 @@ class list_array_tt {
             return &list;
         }
     }
+    
+    
 ///< 将两个lists合二为一
+    /*                       addedLists刚好指向有数据的头部元素
+     rw->methods.attachLists(mlists + ATTACH_BUFSIZ - mcount, mcount);
+     */
     void attachLists(List* const * addedLists, uint32_t addedCount) {
         if (addedCount == 0) return;
-///< 后编译的分类先执行
+        
         if (hasArray()) {
             // many lists -> many lists
             uint32_t oldCount = array()->count;
             uint32_t newCount = oldCount + addedCount;
-            /// 会重现生成一块内存 大小=newCount
+            /* realloc调用形式为(类型*)realloc(*ptr，size)：将ptr内存大小增大到size。 */
             setArray((array_t *)realloc(array(), array_t::byteSize(newCount)));
+            
             array()->count = newCount;
             /// 首先会移动类原来的方法列表
             ///!!!: memmove会更安全一点 如果dst<src 头插. 如果dst>src, 就会用尾插法.
+            /* void * memmove(void *dest, const void *src, size_t num); */
             memmove(array()->lists + addedCount, array()->lists, 
                     oldCount * sizeof(array()->lists[0]));
             /// 然后会将分类里面的方法插入到头部 头插法 导致分类方法先行调用
@@ -911,6 +924,7 @@ class list_array_tt {
             uint32_t newCount = oldCount + addedCount;
             setArray((array_t *)malloc(array_t::byteSize(newCount)));
             array()->count = newCount;
+            // 把原来的一个小臂崽子给我放到尾部
             if (oldList) array()->lists[addedCount] = oldList;
             memcpy(array()->lists, addedLists, 
                    addedCount * sizeof(array()->lists[0]));
