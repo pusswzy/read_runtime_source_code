@@ -298,7 +298,6 @@
 				838486190D6D68A800CEA253 /* Protocol.mm */,
 				830F2A930D73876100392440 /* objc-accessors.mm */,
 				838485CA0D6D68A200CEA253 /* objc-auto.mm */,
-				39ABD72012F0B61800D1054C /* objc-weak.mm */,
 				E8923DA0116AB2820071B552 /* objc-block-trampolines.mm */,
 				838485CB0D6D68A200CEA253 /* objc-cache.mm */,
 				83F550DF155E030800E95D3B /* objc-cache-old.mm */,
@@ -444,6 +443,7 @@
 				83BE02E70FCCB24D00661494 /* objc-runtime-old.h */,
 				838485E50D6D68A200CEA253 /* objc-sel-set.h */,
 				39ABD71F12F0B61800D1054C /* objc-weak.h */,
+				39ABD72012F0B61800D1054C /* objc-weak.mm */,
 			);
 			name = "Project Headers";
 			sourceTree = "<group>";
@@ -568,7 +568,6 @@
 		08FB7793FE84155DC02AAC07 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				BuildIndependentTargetsInParallel = NO;
 				LastUpgradeCheck = 0440;
 				TargetAttributes = {
 					834F9B01212E560100F95A54 = {

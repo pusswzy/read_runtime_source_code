@@ -745,7 +745,7 @@ objc_object::rootRetainCount()
 {
     if (isTaggedPointer()) return (uintptr_t)this;
 
-    sidetable_lock();
+    sidetable_lock(); // 相当于去sideTables根据this获取对应的sideTable 然后调用lock()
     isa_t bits = LoadExclusive(&isa.bits);
     ClearExclusive(&isa.bits);
     // case 2： 如果采用了优化的isa指针

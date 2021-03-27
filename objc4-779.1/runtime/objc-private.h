@@ -826,6 +826,7 @@ enum { CacheLineSize = 64 };
 template<typename T>
 class StripedMap {
 #if TARGET_OS_IPHONE && !TARGET_OS_SIMULATOR
+    // ios系统只有八个sideTable
     enum { StripeCount = 8 };
 #else
     enum { StripeCount = 64 };

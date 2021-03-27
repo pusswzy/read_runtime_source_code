@@ -257,7 +257,11 @@ public:
     void set(SEL newSel, IMP newImp, Class cls);
 };
 
-
+/*
+ CACHE_MASK_STORAGE_OUTLINED 表示运行的环境 模拟器 或者 macOS
+ CACHE_MASK_STORAGE_HIGH_16 表示运行环境是ram64架构64位的真机
+ CACHE_MASK_STORAGE_LOW_4 表示运行环境是ram64架构非64位的真机
+ */
 struct cache_t {
 #if CACHE_MASK_STORAGE == CACHE_MASK_STORAGE_OUTLINED
     explicit_atomic<struct bucket_t *> _buckets;

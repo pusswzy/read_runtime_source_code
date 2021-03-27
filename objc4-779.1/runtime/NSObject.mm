@@ -108,9 +108,9 @@ enum HaveOld { DontHaveOld = false, DoHaveOld = true };
 enum HaveNew { DontHaveNew = false, DoHaveNew = true };
 
 struct SideTable {
-    spinlock_t slock;
-    RefcountMap refcnts;
-    weak_table_t weak_table;
+    spinlock_t slock; // 自旋锁。防止多线程访问SideTable冲突
+    RefcountMap refcnts; // 用于存储对象引用计数的map
+    weak_table_t weak_table; // 用于存储对象弱引用的map
 
     SideTable() {
         memset(&weak_table, 0, sizeof(weak_table));
@@ -175,8 +175,11 @@ void SideTable::unlockTwo<DontHaveOld, DoHaveNew>
     lock2->unlock();
 }
 
-/// 全局啊
-static objc::ExplicitInit<StripedMap<SideTable>> SideTablesMap;
+/// 全局啊 保存了八个sideTable hash数组
+/*
+ 首先, C++中的explicit关键字只能用于修饰只有一个参数的类构造函数, 它的作用是表明该构造函数是显示的, 而非隐式的
+ */
+static objc::ExplicitInit <StripedMap<SideTable>> SideTablesMap;
 
 static StripedMap<SideTable>& SideTables() {
     return SideTablesMap.get();
@@ -734,7 +737,12 @@ private:
 #endif
     }
 
-
+    /*
+     begin和end
+     AutoreleasePoolPage 被初始化在内存的 0x100816000 ~ 0x100817000   [3 * 16 + 8 = 56]
+     其中有 56 bit 用于存储AutoreleasePoolPage 的成员变量，剩下的 0x100816038 ~ 0x100817000 都是用来存储加入到自动释放池中的对象。
+     begin() 和 end() 这两个类的实例方法帮助我们快速获取 0x100816038 ~ 0x100817000 这一范围的边界地址。
+     */
     id * begin() {
         return (id *) ((uint8_t *)this+sizeof(*this));
     }
@@ -759,6 +767,7 @@ private:
     {
         ASSERT(!full());
         unprotect();
+        /// 这里指向将要添加数据的地方 所以ret会返回被添加的数据的指针 下一个++是赋值完成后才++的
         id *ret = next;  // faster than `return next-1` because of aliasing
         *next++ = obj;
         protect();
@@ -775,23 +784,23 @@ private:
         
         // Not recursive: we don't want to blow out the stack 
         // if a thread accumulates a stupendous amount of garbage
-        
+        ///!!!: next会指向外面哦!!!!!!!!!!!!!!!! 会超出最后一个内存 哈哈哈哈哈哈 所以不用担心最后一个不会释放的问题
         while (this->next != stop) {
             // Restart from hotPage() every time, in case -release 
             // autoreleased more objects
             AutoreleasePoolPage *page = hotPage();
 ///< Lee: 苹果面试官也是人啊...
+            // if -> 也就是说明没有空挡被
             // fixme I think this `while` can be `if`, but I can't prove it
             while (page->empty()) {
                 page = page->parent;
                 setHotPage(page);
             }
-
-            page->unprotect();
+            ///!!!: 留个疑问
             id obj = *--page->next;
             memset((void*)page->next, SCRIBBLE, sizeof(*page->next));
-            page->protect();
-
+            
+            // 有哨兵一样干死 = SCRIBBLE
             if (obj != POOL_BOUNDARY) {
                 objc_release(obj);
             }
@@ -800,7 +809,7 @@ private:
         setHotPage(this);
 
 #if DEBUG
-        // we expect any children to be completely empty
+        // we expect any children to be completely empty 希望child都空了
         for (AutoreleasePoolPage *page = child; page; page = page->child) {
             ASSERT(page->empty());
         }
@@ -826,7 +835,7 @@ private:
             delete deathptr;
         } while (deathptr != this);
     }
-
+// 是否线程退出的时候 会调用这个方法呢
     static void tls_dealloc(void *p) 
     {
         if (p == (void*)EMPTY_POOL_PLACEHOLDER) {
@@ -854,7 +863,13 @@ private:
     {
         return pageForPointer((uintptr_t)p);
     }
+    // 将指针与页面的大小，也就是 4096 取模，得到当前指针的偏移量，因为所有的 AutoreleasePoolPage 在内存中都是对齐的：
+    /*
+     p = 0x100816048
+     p % SIZE = 0x48
+     result = 0x100816000
 
+     */
     static AutoreleasePoolPage *pageForPointer(uintptr_t p) 
     {
         AutoreleasePoolPage *result;
@@ -863,6 +878,7 @@ private:
         ASSERT(offset >= sizeof(AutoreleasePoolPage));
 
         result = (AutoreleasePoolPage *)(p - offset);
+        /// 而最后调用的方法 fastCheck() 用来检查当前的 result 是不是一个 AutoreleasePoolPage。 通过检查 magic_t 结构体中的某个成员是否为 0xA1A1A1A1。
         result->fastcheck();
 
         return result;
@@ -881,13 +897,24 @@ private:
         tls_set_direct(key, (void *)EMPTY_POOL_PLACEHOLDER);
         return EMPTY_POOL_PLACEHOLDER;
     }
+    /*
+     提示：进程中的所有线程都可以访问进程的整个地址空间。除了使用寄存器以外(一个线程真正拥有的唯一私有存储是处理器的寄存器)，线程没有办法阻止其他线程访问它的数据，线程私有数据也不例外。虽然底层的实现部分并不能阻止这种访问能力，但管理线程私有数据的函数可以提高线程间的数据独立性。
+     */
+    /*
+     hotPage是autoreleasePage链表中正在使用的autoreleasePage节点。实质上是指向autoreleasepage的指针，并存储于线程的TSD(线程私有数据：Thread-specific Data)中
+     */
+    /*
+     autoreleasepool是和线程绑定的，一个线程对应一个autoreleasepool。而autoreleasepool虽然叫做自动释放池，其实质上是一个双向链表。
 
+     在介绍runloop的时候，我们也曾提到过，runloop和线程也是一一对应的，并且在当前线程的runloop指针，也会存储到线程的TSD中。这是runtime对于TSD的一个应用。
+     */
+    /// TSD: 一键多值
     static inline AutoreleasePoolPage *hotPage() 
     {
         AutoreleasePoolPage *result = (AutoreleasePoolPage *)
             tls_get_direct(key);
         if ((id *)result == EMPTY_POOL_PLACEHOLDER) return nil;
-        if (result) result->fastcheck();
+        if (result) result->fastcheck(); // 不知道干啥的
         return result;
     }
 
@@ -909,7 +936,7 @@ private:
         return result;
     }
 
-
+    // 核心push
     static inline id *autoreleaseFast(id obj)
     {
         /*
@@ -923,6 +950,7 @@ private:
         if (page && !page->full()) {
             return page->add(obj);
         } else if (page) {
+            // 如果hot page满了，就需要在链表中‘加页’，同时将新页置为hot page
             return autoreleaseFullPage(obj, page);
         } else {
             return autoreleaseNoPage(obj);
@@ -933,47 +961,43 @@ private:
     id *autoreleaseFullPage(id obj, AutoreleasePoolPage *page)
     {
         // The hot page is full. 
-        // Step to the next non-full page, adding a new page if necessary.
+        // Step to the next non-full page, adding a new page if necessary. 并不一定会新增页
         // Then add the object to that page.
         ASSERT(page == hotPage());
         ASSERT(page->full()  ||  DebugPoolAllocation);
 
         do {
-            if (page->child) page = page->child;
-            else page = new AutoreleasePoolPage(page);
+            if (page->child) {
+                page = page->child;
+            } else {
+                page = new AutoreleasePoolPage(page);
+            }
         } while (page->full());
-
+        ///!!!: （实际上存储到了TSD中
         setHotPage(page);
         return page->add(obj);
     }
+/*
+ 但是苹果其实在这里是耍了一个小心机的，当在创建第一个page时，苹果并不会真正创建一个page，因为它害怕创建了page后，并没有真正的object需要插入page，这样就造成了无谓的内存浪费。
 
+ 在没有第一个真正的object入栈之前，苹果是这样做的：仅仅在线程的TSD中做了一个EMPTY_POOL_PLACEHOLDER标记，并返回它。这里没有真正的new 一个AutoreleasePoolPage。
+ */
     static __attribute__((noinline))
     id *autoreleaseNoPage(id obj)
     {
         // "No page" could mean no pool has been pushed
         // or an empty placeholder pool has been pushed and has no contents yet
-        ASSERT(!hotPage());
+        ASSERT(!hotPage()); // 现在要是有hotPage就给我崩!
 
         bool pushExtraBoundary = false;
-        if (haveEmptyPoolPlaceholder()) {
+        if (haveEmptyPoolPlaceholder()) { /// 如果当前线程只有一个虚拟的空池，则这次需要真正创建一个page
             // We are pushing a second pool over the empty placeholder pool
             // or pushing the first object into the empty placeholder pool.
             // Before doing that, push a pool boundary on behalf of the pool 
             // that is currently represented by the empty placeholder.
             pushExtraBoundary = true;
         }
-        else if (obj != POOL_BOUNDARY  &&  DebugMissingPools) {
-            // We are pushing an object with no pool in place, 
-            // and no-pool debugging was requested by environment.
-            _objc_inform("MISSING POOLS: (%p) Object %p of class %s "
-                         "autoreleased with no pool in place - "
-                         "just leaking - break on "
-                         "objc_autoreleaseNoPool() to debug", 
-                         objc_thread_self(), (void*)obj, object_getClassName(obj));
-            objc_autoreleaseNoPool(obj);
-            return nil;
-        }
-        else if (obj == POOL_BOUNDARY  &&  !DebugPoolAllocation) {
+        else if (obj == POOL_BOUNDARY  &&  !DebugPoolAllocation) { /// 如果obj == POOL_BOUNDARY，这里苹果有个小心机，它不会真正创建page，而是在线程的TSD中做了一个空池的标志
             // We are pushing a pool with no pool in place,
             // and alloc-per-pool debugging was not requested.
             // Install and return the empty pool placeholder.
@@ -1004,6 +1028,7 @@ private:
         else return autoreleaseNoPage(obj);
     }
 
+    ///!!!: 对象调用autorelease方法 实际上调用的是这里 实际还是autoreleaseFast
 public:
     static inline id autorelease(id obj)
     {
@@ -1014,7 +1039,9 @@ public:
         return obj;
     }
 
-
+/*
+ 当用户调用@autoreleasepool{}的时候，系统首先会调用AutoreleasePoolPage::push()方法，来创建或获取当前的hotPage，并向对象栈中插入一个POOL_BOUNDARY。
+ */
     static inline void *push() 
     {
         id *dest;
@@ -1053,7 +1080,7 @@ public:
         }
         objc_autoreleasePoolInvalid(token);
     }
-
+/// 真正的pop
     template<bool allowDebug>
     static void
     popPage(void *token, AutoreleasePoolPage *page, id *stop)
@@ -1062,7 +1089,7 @@ public:
 
         page->releaseUntil(stop);
 
-        // memory: delete empty children
+        // memory: delete empty children 删空的child
         if (allowDebug && DebugPoolAllocation  &&  page->empty()) {
             // special case: delete everything during page-per-pool debugging
             AutoreleasePoolPage *parent = page->parent;
@@ -1090,12 +1117,13 @@ public:
     {
         popPage<true>(token, page, stop);
     }
-
+///!!!: pop
     static inline void
     pop(void *token)
     {
         AutoreleasePoolPage *page;
         id *stop;
+        /// push的时候并没有真正的创建一个page, 所以拿不到哨兵, 要特殊处理下
         if (token == (void*)EMPTY_POOL_PLACEHOLDER) {
             // Popping the top-level placeholder pool.
             page = hotPage();
@@ -1108,11 +1136,13 @@ public:
             page = coldPage();
             token = page->begin();
         } else {
+            // 根据token获取当前页
             page = pageForPointer(token);
         }
 
         stop = (id *)token;
-        if (*stop != POOL_BOUNDARY) {
+        /// 这是一堆无用的检查么
+        if (*stop != POOL_BOUNDARY) { // *stop 哈哈哈
             if (stop == page->begin()  &&  !page->parent) {
                 // Start of coldest page may correctly not be POOL_BOUNDARY:
                 // 1. top-level pool is popped, leaving the cold page in place
@@ -1127,10 +1157,13 @@ public:
         if (slowpath(PrintPoolHiwat || DebugPoolAllocation || DebugMissingPools)) {
             return popPageDebug(token, page, stop);
         }
-
+// 调用1076行代码
         return popPage<false>(token, page, stop);
     }
-
+/// runtime初始化的过程中，会调用AutoReleasePoolPage::init方法注册tls_dealloc：
+    /*
+     实际上phtread_key_init_np时给thread注册了线程销毁时的自定义析构函数，这里我们可以一起来看看darwin-apple的libpthread代码，这里我直接简化掉流程，输出大致的过程
+     */
     static void init()
     {
         int r __unused = pthread_key_init_np(AutoreleasePoolPage::key, 
