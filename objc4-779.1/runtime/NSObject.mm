@@ -1971,25 +1971,33 @@ objc_retainAutoreleaseAndReturn(id obj)
     return objc_retainAutorelease(obj);
 }
 
-
+/// 两个小优化代码
 // Prepare a value at +1 for return through a +0 autoreleasing convention.
 id 
 objc_autoreleaseReturnValue(id obj)
 {
+    /// ReturnAtPlus1可以看成是true
     if (prepareOptimizedReturn(ReturnAtPlus1)) return obj;
+    /*
+     // Try to prepare for optimized return with the given disposition (+0 or +1).
+     // Returns true if the optimized path is successful.
+     // Otherwise the return value must be retained and/or autoreleased as usual.
+     static ALWAYS_INLINE bool
+     prepareOptimizedReturn(ReturnDisposition disposition)
+     {
+         ASSERT(getReturnDisposition() == ReturnAtPlus0);
 
+         if (callerAcceptsOptimizedReturn(__builtin_return_address(0))) {
+     // 如果调用方有优化 那么就设置标志 返回真  ARC??
+             if (disposition) setReturnDisposition(disposition);
+             return true;
+         }
+
+         return false;
+     }
+
+     */
     return objc_autorelease(obj);
-}
-
-// Prepare a value at +0 for return through a +0 autoreleasing convention.
-id 
-objc_retainAutoreleaseReturnValue(id obj)
-{
-    if (prepareOptimizedReturn(ReturnAtPlus0)) return obj;
-
-    // not objc_autoreleaseReturnValue(objc_retain(obj)) 
-    // because we don't need another optimization attempt
-    return objc_retainAutoreleaseAndReturn(obj);
 }
 
 // Accept a value returned through a +0 autoreleasing convention for use at +1.
@@ -1999,6 +2007,18 @@ objc_retainAutoreleasedReturnValue(id obj)
     if (acceptOptimizedReturn() == ReturnAtPlus1) return obj;
 
     return objc_retain(obj);
+}
+
+///!!!: 这个方法用不上 不要管
+// Prepare a value at +0 for return through a +0 autoreleasing convention.
+id
+objc_retainAutoreleaseReturnValue(id obj)
+{
+    if (prepareOptimizedReturn(ReturnAtPlus0)) return obj;
+
+    // not objc_autoreleaseReturnValue(objc_retain(obj))
+    // because we don't need another optimization attempt
+    return objc_retainAutoreleaseAndReturn(obj);
 }
 
 // Accept a value returned through a +0 autoreleasing convention for use at +0.
