@@ -100,23 +100,20 @@ dispatch_once_f(dispatch_once_t *predicate, void *_Nullable context,
 		dispatch_function_t function);
 
 #if DISPATCH_ONCE_INLINE_FASTPATH
-DISPATCH_INLINE DISPATCH_ALWAYS_INLINE DISPATCH_NONNULL1 DISPATCH_NONNULL3
-DISPATCH_NOTHROW
-DISPATCH_SWIFT3_UNAVAILABLE("Use lazily initialized globals instead")
-void
-_dispatch_once_f(dispatch_once_t *predicate, void *_Nullable context,
+///!!!: ~0l就是-1的意思
+void _dispatch_once_f(dispatch_once_t *predicate, void *_Nullable context,
 		dispatch_function_t function)
 {
+	// 断言有很大的可能等于-1  如果不等于-1就表示还没有执行过 则进入该判断分支
 	if (DISPATCH_EXPECT(*predicate, ~0l) != ~0l) {
 		dispatch_once_f(predicate, context, function);
 	} else {
+		// 已经执行过一次了
 		dispatch_compiler_barrier();
 	}
+	// #define DISPATCH_COMPILER_CAN_ASSUME(expr) __builtin_assume(expr) 可以认为断言为-1了(赋值操作) 跟上面执行过一次就为-1的相似
 	DISPATCH_COMPILER_CAN_ASSUME(*predicate == ~0l);
 }
-#undef dispatch_once_f
-#define dispatch_once_f _dispatch_once_f
-#endif // DISPATCH_ONCE_INLINE_FASTPATH
 
 __END_DECLS
 
