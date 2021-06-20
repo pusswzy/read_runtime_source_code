@@ -262,7 +262,7 @@ objc_storeStrong(id *location, id obj)
     objc_release(prev);
 }
 
-
+/// weak核心代码
 // Update a weak variable.
 // If HaveOld is true, the variable has an existing value 
 //   that needs to be cleaned up. This value might be nil.
@@ -293,7 +293,7 @@ static id
     // Retry if the old value changes underneath us.
  retry:
     if (haveOld) {
-        /// 有旧值 拿到原来weak对象指向的旧值?
+        /// 有旧值 拿到原来weak对象指向的旧值 | 看样现在还没有对象的地址还没保存到指针中
         oldObj = *location;
         // 如果有旧值 必须要清理旧值的弱引用表 通过全局SideTables以oldObj(*弱引用指向的地址*)为key获取sideTable
         oldTable = &SideTables()[oldObj];
@@ -303,7 +303,7 @@ static id
     if (haveNew) {
         newTable = &SideTables()[newObj];
     } else {
-        newTable = nil;
+        newTable = nil; /// 如果weak ptr不需要引用一个新obj，则newTable = nil
     }
     // sideTable内部有一个自旋锁
     SideTable::lockTwo<haveOld, haveNew>(oldTable, newTable);
@@ -318,7 +318,7 @@ static id
     // Prevent a deadlock between the weak reference machinery
     // and the +initialize machinery by ensuring that no 
     // weakly-referenced object has an un-+initialized isa.
-    if (haveNew  &&  newObj) {
+    if (haveNew  &&  newObj) { // 防止类还没有初始化
         Class cls = newObj->getIsa();
         if (cls != previouslyInitializedClass  &&  
             !((objc_class *)cls)->isInitialized()) 
@@ -358,7 +358,7 @@ static id
         }
 
         // Do not set *location anywhere else. That would introduce a race.
-        /// 赋值了
+        ///  在这里才会赋值! 而不是weakPtr  = obj之后会立刻赋值, 所以要小心多线程数据竞争的问题
         *location = (id)newObj;
     }
     else {
@@ -423,6 +423,7 @@ objc_storeWeakOrNil(id *location, id newObj)
  * @param newObj Object ptr. 
  */
 id
+__weak NSObject *weakObj = nil;
 objc_initWeak(id *location, id newObj)
 {
     if (!newObj) {
@@ -736,10 +737,12 @@ private:
 
 
     id * begin() {
+        // +56字节
         return (id *) ((uint8_t *)this+sizeof(*this));
     }
 
     id * end() {
+        // +4kb
         return (id *) ((uint8_t *)this+SIZE);
     }
 
@@ -1721,7 +1724,13 @@ _objc_rootRelease(id obj)
     obj->rootRelease();
 }
 
+/*
+ 在第一件事中，调用calloc方法，你需要提供需要申请内存的大小。在OC中有两条分支：
+ （1）can alloc fast
+ （2）can’t alloc fast
 
+ 对于可以alloc fast的类，应该是经过编译器优化的类。这种类的实例大小直接被放到了bits中
+ */
 // Call [cls alloc] or [cls allocWithZone:nil], with appropriate 
 // shortcutting optimizations.
 static ALWAYS_INLINE id ///< alloc方法
@@ -2360,7 +2369,8 @@ __attribute__((objc_nonlazy_class))
 + (id)alloc {
     ///!!!: alloc 分配内存
     /*
-     其实alloc无非就是做了2件事
+     其实alloc无非就是做3件事
+     - 计算实例对象大小
      - 分配内存
      - 对isa_t 联合体赋值
      - 返回实例对象的指针

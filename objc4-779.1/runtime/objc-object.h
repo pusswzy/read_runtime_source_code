@@ -245,6 +245,7 @@ objc_object::initIsa(Class cls, bool nonpointer, bool hasCxxDtor)
         newisa.has_cxx_dtor = hasCxxDtor;
         newisa.indexcls = (uintptr_t)cls->classArrayIndex();
 #else
+        /// 应该是这条分支
         newisa.bits = ISA_MAGIC_VALUE;
         // isa.magic is part of ISA_MAGIC_VALUE
         // isa.nonpointer is part of ISA_MAGIC_VALUE
@@ -541,7 +542,10 @@ objc_object::rootRetain(bool tryRetain, bool handleOverflow)
             newisa.has_sidetable_rc = true;
         }
     } while (slowpath(!StoreExclusive(&isa.bits, oldisa.bits, newisa.bits)));
-
+/*
+ define RC_HALF  (1ULL<<18)
+ 在iOS中，extra_rc占有19位，也就是最大能够表示2^19-1, 用二进制表示就是19个1。当extra_rc等于2^19时，溢出，此时的二进制位是一个1后面跟19个0， 即10000…00。将会溢出的值2^19除以2，相当于将10000…00向右移动一位。也就等于RC_HALF(1ULL<<18)，即一个1后面跟18个0。
+ */
     if (slowpath(transcribeToSideTable)) { /// //isa的extra_rc溢出，将一半的refer count值放到sidetable中
         // Copy the other half of the retain counts to the side table.
         sidetable_addExtraRC_nolock(RC_HALF);
@@ -603,7 +607,7 @@ objc_object::rootRelease(bool performDealloc, bool handleUnderflow)
     do {
         oldisa = LoadExclusive(&isa.bits);
         newisa = oldisa;
-        if (slowpath(!newisa.nonpointer)) {
+        if (slowpath(!newisa.nonpointer)) { // 慢路径 : 如果没有开启isa优化，则到sidetable中引用计数减一
             ClearExclusive(&isa.bits);
             if (rawISA()->isMetaClass()) return false;
             if (sideTableLocked) sidetable_unlock();
@@ -612,7 +616,7 @@ objc_object::rootRelease(bool performDealloc, bool handleUnderflow)
         // don't check newisa.fast_rr; we already called any RR overrides
         uintptr_t carry;
         newisa.bits = subc(newisa.bits, RC_ONE, 0, &carry);  // extra_rc--
-        if (slowpath(carry)) {
+        if (slowpath(carry)) { // 如果下溢出，则goto underflow
             // don't ClearExclusive()
             goto underflow;
         }
@@ -620,8 +624,11 @@ objc_object::rootRelease(bool performDealloc, bool handleUnderflow)
                                              oldisa.bits, newisa.bits)));
 
     if (slowpath(sideTableLocked)) sidetable_unlock();
-    return false;
+    return false; ///  如果没有溢出，则在这里就会返回false（表明引用计数不等于0，没有dealloc）
 
+    // 只有isa.extra_rc  -1 下溢出后，才会进入下面的代码。下溢出有两种情况:
+        // 1. borrow from side table . isa.extra_rc 有从side table存储。这是假溢出，只需要将side table中的RC_HALF移回到isa.extra_rc即可。并返回false
+        // 2. deallocate。 这种情况是真下溢出。此时isa.extra_rc < 0，且没有newisa.has_sidetable_rc 没有想side table 借位。说明object引用计数==0，(1) 设置newisa.deallocating = true;
  underflow:
     // newisa.extra_rc-- underflowed: borrow from side table or deallocate
 
