@@ -1237,7 +1237,7 @@ prepareMethodLists(Class cls, method_list_t **addedLists, int addedCount,
     }
 }
 
-
+// 注释写的很明白了
 // Attach method lists and properties and protocols from categories to a class.
 // Assumes the categories in cats are all loaded and sorted by load order, 
 // oldest categories first.
@@ -1245,6 +1245,8 @@ static void
 attachCategories(Class cls, const locstamped_category_t *cats_list, uint32_t cats_count,
                  int flags)
 {
+    ///!!!: 这个注释好奇怪 本质上传进来的是一个分类 64表示的是方法而已
+    /// mlists[ATTACH_BUFSIZ - ++mcount] = mlist; 看见这行代码我明白了 存的就是每一个分类的方法列表 这个*很难搞 初始化和参数是不一样的?
     /*
      * Only a few classes have more than 64 categories during launch.
      * This uses a little stack, and avoids malloc.
@@ -1268,8 +1270,8 @@ attachCategories(Class cls, const locstamped_category_t *cats_list, uint32_t cat
     bool isMeta = (flags & ATTACH_METACLASS);
     /// 拿到rw
     auto rw = cls->data();
-///!!!: 老版本是while(i--)逆序遍历的
     for (uint32_t i = 0; i < cats_count; i++) {
+        ///!!!: 老版本是while(i--)逆序遍历的
         auto& entry = cats_list[i];
 
         method_list_t *mlist = entry.cat->methodsForMeta(isMeta);
@@ -1280,7 +1282,7 @@ attachCategories(Class cls, const locstamped_category_t *cats_list, uint32_t cat
                 rw->methods.attachLists(mlists, mcount);
                 mcount = 0;
             }
-            /// lee: 从后面往前面塞??   [null, null, null, method_2, method_1]
+            /// lee: 从后面往前面塞??   [null, null, null, method_list_2, method_list_1]
             mlists[ATTACH_BUFSIZ - ++mcount] = mlist;
             fromBundle |= entry.hi->isBundle();
         }
@@ -1290,6 +1292,7 @@ attachCategories(Class cls, const locstamped_category_t *cats_list, uint32_t cat
         if (proplist) {
             if (propcount == ATTACH_BUFSIZ) {
                 rw->properties.attachLists(proplists, propcount);
+                /// 超过64就走一批被
                 propcount = 0;
             }
             proplists[ATTACH_BUFSIZ - ++propcount] = proplist;
@@ -2938,6 +2941,7 @@ map_images(unsigned count, const char * const paths[],
            const struct mach_header * const mhdrs[])
 {
     mutex_locker_t lock(runtimeLock);
+    // 还不在一个文件里面
     return map_images_nolock(count, paths, mhdrs);
 }
 
@@ -3243,6 +3247,9 @@ readProtocol(protocol_t *newproto, Class protocol_class,
 *
 * Locking: runtimeLock acquired by map_images
 **********************************************************************/
+/*
+ header_info 是存着header_info *的数组
+ */
 void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int unoptimizedTotalClasses)
 {
     header_info *hi;
@@ -3339,7 +3346,8 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
             // Image is sufficiently optimized that we need not call readClass()
             continue;
         }
-
+///!!!: 这里赋值的count?
+        ///!!!: 有没有可能这里就是初始化类的代码
         classref_t const *classlist = _getObjc2ClassList(hi, &count);
 
         bool headerIsBundle = hi->isBundle();
@@ -3460,7 +3468,6 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
         bool hasClassProperties = hi->info()->hasCategoryClassProperties();
 
         auto processCatlist = [&](category_t * const *catlist) {
-            /// 一个一个分类添加么??? 是一个分类数组 🙅‍♂️
             for (i = 0; i < count; i++) {
                 category_t *cat = catlist[i];
                 /// 先调用remapClass(cat->cls)，并返回一个objc_class *对象cls。这一步的目的在于找到到category对应的类对象cls。
@@ -3505,7 +3512,7 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
                      */
                     
                     /// 本质上就是调用attachCategories 将分类的内容绑定到类/元类上
-                    
+                    // 如果Category中有实例方法，协议，实例属性，会改写target class的结构
                     if (cat->instanceMethods ||  cat->protocols
                         ||  cat->instanceProperties)
                     {
@@ -3519,7 +3526,7 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
                         }
                     }
                     
-                    /// lee: 类对象现在OC也不支持 支持了已经
+                    // 如果category中有类方法，协议，或类属性, 会改写target class的元类结构
                     if (cat->classMethods  ||  cat->protocols
                         ||  (hasClassProperties && cat->_classProperties))
                     {
@@ -3536,6 +3543,14 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
         };
         processCatlist(_getObjc2CategoryList(hi, &count));
         processCatlist(_getObjc2CategoryList2(hi, &count));
+        /*
+         先调用_getObjc2CategoryList读取__objc_catlist seciton下所记录的所有category。并存放到category_t *数组中。
+         依次读取数组中的category_t * cat
+         对每一个cat，先调用remapClass(cat->cls)，并返回一个objc_class *对象cls。这一步的目的在于找到到category对应的类对象cls。
+         找到category对应的类对象cls后，就开始进行对cls的修改操作了。首先，如果category中有实例方法，协议，和实例属性之一的话，则直接对cls进行操作。如果category中包含了类方法，协议，类属性（不支持）之一的话，还要对cls所对应的元类(cls->ISA())进行操作。
+         不管是对cls还是cls的元类进行操作，都是调用的方法addUnattachedCategoryForClass。但这个方法并不是category实现的关键，其内部逻辑只是将class和其对应的category做了一个映射。这样，以class为key，就可以取到所其对应的所有的category。
+         做好class和category的映射后，会调用remethodizeClass方法来修改class的method list结构，这才是runtime实现category的关键所在。
+         */
     }
 
     ts.log("IMAGE TIMES: discover categories");
@@ -5736,6 +5751,7 @@ getMethodNoSuper_nolock(Class cls, SEL sel)
     runtimeLock.assertLocked();
 
     ASSERT(cls->isRealized());
+    /// 价格断言宏不就好了
     // fixme nil cls? 
     // fixme nil sel?
 
@@ -5998,7 +6014,7 @@ IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
     const IMP forward_imp = (IMP)_objc_msgForward_impcache;
     IMP imp = nil;
     Class curClass;
-
+// runtimeLock 本质上是对 Darwin 提供的线程读写锁 pthread_rwlock_t 的一层封装，提供了一些便捷的方法
     runtimeLock.assertUnlocked();
 
     // Optimistic cache lookup
@@ -6008,6 +6024,10 @@ IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
         if (imp) goto done_nolock;
     }
 
+    ///!!!: 这就是为什么使用锁的原因
+    /*
+     考虑到运行时类中的方法可能会增加，需要先做读操作加锁，使得方法查找和缓存填充成为原子操作。添加 category 会刷新缓存，之后如果旧数据又被重填到缓存中，category 添加操作就会被忽略掉。
+     */
     // runtimeLock is held during isRealized and isInitialized checking
     // to prevent races against concurrent realization.
 

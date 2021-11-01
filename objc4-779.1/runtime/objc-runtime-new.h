@@ -897,6 +897,7 @@ class list_array_tt {
     /*                       addedLists刚好指向有数据的头部元素
      rw->methods.attachLists(mlists + ATTACH_BUFSIZ - mcount, mcount);
      */
+    // 相当于二维数组合并一个二维数组
     void attachLists(List* const * addedLists, uint32_t addedCount) {
         if (addedCount == 0) return;
         
@@ -927,7 +928,7 @@ class list_array_tt {
             uint32_t oldCount = oldList ? 1 : 0;
             uint32_t newCount = oldCount + addedCount;
             setArray((array_t *)malloc(array_t::byteSize(newCount)));
-            array()->count = newCount;
+            array()->count = h;
             // 把原来的一个小臂崽子给我放到尾部
             if (oldList) array()->lists[addedCount] = oldList;
             memcpy(array()->lists, addedLists, 

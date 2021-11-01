@@ -904,7 +904,13 @@ class StripedMap {
 #endif
 };
 
+/*
+ 指针伪装模版类 Disguised<T>，与此对应的概念是指针伪装。
 
+ DisguisedPtr<T> 通过运算使指针隐藏于系统工具（如 leaks 工具），同时保持指针的能力，其作用是通过计算把保存的 T 的指针隐藏起来，实现指针到整数的映射。
+
+ 根据 Disguised 这个英文单词我们或许能猜出一部分信息，Ptr 是 Pointer （指针）的缩写，硬翻译的话可以理解为：掩藏指针，封装指针，看它的定义再直白一点的话，大概就是指针本身的地址值与 unsigned long 来回相互转化。
+ */
 // DisguisedPtr<T> acts like pointer type T*, except the 
 // stored value is disguised to hide it from tools like `leaks`.
 // nil is disguised as itself so zero-filled memory works as expected, 
@@ -914,11 +920,14 @@ template <typename T>
 class DisguisedPtr {
     uintptr_t value;
 
+    // typedef unsigned long uintptr_t;
     static uintptr_t disguise(T* ptr) {
+        // 相当于直接把 T 指针的地址转化为 unsigned long 并取负值
         return -(uintptr_t)ptr;
     }
 
     static T* undisguise(uintptr_t val) {
+        // 把 val 转为指针地址，对应上面的 disguise 函数
         return (T*)-val;
     }
 

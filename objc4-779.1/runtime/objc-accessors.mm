@@ -56,6 +56,7 @@ id objc_getProperty(id self, SEL _cmd, ptrdiff_t offset, BOOL atomic) {
     if (!atomic) return *slot;
         
     // Atomic retain release world
+    ///!!!: 属性是key
     spinlock_t& slotlock = PropertyLocks[slot];
     slotlock.lock();
     /// retain
@@ -84,7 +85,7 @@ static inline void reallySetProperty(id self, SEL _cmd, id newValue, ptrdiff_t o
     } else if (mutableCopy) {
         newValue = [newValue mutableCopyWithZone:nil];
     } else {
-        /// 指针相同就不赋值了???  [疑问: 赋值相同的话 还会不会调用KVO]
+        /// 指针相同就不赋值了???  [疑问: 赋值相同的话 还会不会调用KVO] 会吧 重写setter了
         if (*slot == newValue) return;
         /// 会对新值retain
         newValue = objc_retain(newValue);

@@ -31,8 +31,8 @@
 
 
 typedef struct alignas(CacheLineSize) SyncData {
-    struct SyncData* nextData;
-    DisguisedPtr<objc_object> object;
+    struct SyncData* nextData; // ListNode 😊
+    DisguisedPtr<objc_object> object; ///< 伪装指针
     int32_t threadCount;  // number of THREADS using this block
     recursive_mutex_t mutex;
 } SyncData;
@@ -115,47 +115,50 @@ static SyncData* id2data(id object, enum usage why)
 
 #if SUPPORT_DIRECT_THREAD_KEYS
     // Check per-thread single-entry fast cache for matching object
+    /// 1.先从线程Thread Local Storage快速缓存中获取 SyncData [因为是快速缓存 所以没遍历链表]
     bool fastCacheOccupied = NO;
     SyncData *data = (SyncData *)tls_get_direct(SYNC_DATA_DIRECT_KEY);
     if (data) {
         fastCacheOccupied = YES;
-
+        
         if (data->object == object) {
             // Found a match in fast cache.
             uintptr_t lockCount;
-
+            
             result = data;
+            //获取当前线程tls缓存里的SyncData加锁次数
             lockCount = (uintptr_t)tls_get_direct(SYNC_COUNT_DIRECT_KEY);
-            if (result->threadCount <= 0  ||  lockCount <= 0) {
-                _objc_fatal("id2data fastcache is buggy");
-            }
-
+            
+            ///!!!: 加解锁都在这里做了
             switch(why) {
-            case ACQUIRE: {
-                lockCount++;
-                tls_set_direct(SYNC_COUNT_DIRECT_KEY, (void*)lockCount);
-                break;
-            }
-            case RELEASE:
-                lockCount--;
-                tls_set_direct(SYNC_COUNT_DIRECT_KEY, (void*)lockCount);
-                if (lockCount == 0) {
-                    // remove from fast cache
-                    tls_set_direct(SYNC_DATA_DIRECT_KEY, NULL);
-                    // atomic because may collide with concurrent ACQUIRE
-                    OSAtomicDecrement32Barrier(&result->threadCount);
+                case ACQUIRE: {
+                    //加锁一次，更新当前线程tls缓存
+                    lockCount++;
+                    tls_set_direct(SYNC_COUNT_DIRECT_KEY, (void*)lockCount);
+                    break;
                 }
-                break;
-            case CHECK:
-                // do nothing
-                break;
+                case RELEASE:
+                    //释放锁一次，更新当前线程tls缓存
+                    lockCount--;
+                    tls_set_direct(SYNC_COUNT_DIRECT_KEY, (void*)lockCount);
+                    if (lockCount == 0) {
+                        // remove from fast cache
+                        tls_set_direct(SYNC_DATA_DIRECT_KEY, NULL);
+                        // atomic because may collide with concurrent ACQUIRE
+                        OSAtomicDecrement32Barrier(&result->threadCount);
+                    }
+                    break;
+                case CHECK:
+                    // do nothing
+                    break;
             }
-
+            
             return result;
         }
     }
 #endif
 
+    ///< 2，从当前线程缓存中获取SyncCache结构体，包含了SyncCacheItem数组，一个线程可以对应多个SyncCacheItem同步对象，也就是一个线程可以处理多个SyncData。
     // Check per-thread cache of already-owned locks for matching object
     SyncCache *cache = fetch_cache(NO);
     if (cache) {
@@ -166,9 +169,6 @@ static SyncData* id2data(id object, enum usage why)
 
             // Found a match.
             result = item->data;
-            if (result->threadCount <= 0  ||  item->lockCount <= 0) {
-                _objc_fatal("id2data cache is buggy");
-            }
                 
             switch(why) {
             case ACQUIRE:
@@ -200,7 +200,7 @@ static SyncData* id2data(id object, enum usage why)
     // more than 20 or so distinct locks active, but we don't do that now.
     
     lockp->lock();
-
+    ///< 3.通过obj在全局哈希表sDataLists中查找SyncData列表，因为sDataLists是全局共享的，所以这里使用了spinlock_t加锁。
     {
         SyncData* p;
         SyncData* firstUnused = NULL;
@@ -220,6 +220,7 @@ static SyncData* id2data(id object, enum usage why)
             goto done;
     
         // an unused one was found, use it
+        //找到SyncData，且未使用，重复利用
         if ( firstUnused != NULL ) {
             result = firstUnused;
             result->object = (objc_object *)object;
@@ -227,7 +228,7 @@ static SyncData* id2data(id object, enum usage why)
             goto done;
         }
     }
-
+///< 4.如果上面三步都没有找到SyncData，那么需要新建SyncData。
     // Allocate a new SyncData and add to list.
     // XXX allocating memory with a global lock held is bad practice,
     // might be worth releasing the lock, allocating, and searching again.
@@ -235,10 +236,11 @@ static SyncData* id2data(id object, enum usage why)
     posix_memalign((void **)&result, alignof(SyncData), sizeof(SyncData));
     result->object = (objc_object *)object;
     result->threadCount = 1;
+    // new 递归互斥锁
     new (&result->mutex) recursive_mutex_t(fork_unsafe_lock);
     result->nextData = *listp;
     *listp = result;
-    
+///< 5.保存SyncData对象。
  done:
     lockp->unlock();
     if (result) {

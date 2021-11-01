@@ -209,8 +209,7 @@ static void call_class_loads(void)
 *
 * Called only by call_load_methods().
 **********************************************************************/
-static bool call_category_loads(void)
-{
+ {
     int i, shift;
     bool new_categories_added = NO;
     

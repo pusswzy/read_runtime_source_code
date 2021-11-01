@@ -2052,7 +2052,7 @@ id objc_unretainedObject(objc_objectptr_t pointer) { return (id)pointer; }
 // convert id to objc_objectptr_t, no ownership transfer.
 objc_objectptr_t objc_unretainedPointer(id object) { return object; }
 
-
+///!!!: 相当于加载映射首次被载入的时候会被调用 666 知道了啥时候初始化的自动释放池和散列表了
 void arr_init(void) 
 {
     AutoreleasePoolPage::init();
