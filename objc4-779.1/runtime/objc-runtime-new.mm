@@ -5951,6 +5951,7 @@ resolveMethod_locked(id inst, SEL sel, Class cls, int behavior)
 }
 
 
+
 /***********************************************************************
 * log_and_fill_cache
 * Log this method call. If the logger permits it, fill the method cache.
@@ -5992,7 +5993,10 @@ enum {
     LOOKUP_CACHE = 4, 1>>2
     LOOKUP_NIL = 8, 1>>3
 };
-
+///< 我觉得这个就算是核心代码了 objc_msg_send 最后会调用这个方法
+/*
+ lookUpImpOrForward方法的目的在于根据class和SEL，在class或其super class中找到并返回对应的实现IMP，同时，cache所找到的IMP到当前class中。如果没有找到对应IMP，lookUpImpOrForward会进入消息转发流程
+ */
 IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
 {
     const IMP forward_imp = (IMP)_objc_msgForward_impcache;

@@ -46,8 +46,8 @@
             filePath = "runtime/objc-runtime-new.mm"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "6001"
-            endingLineNumber = "6001"
+            startingLineNumber = "6005"
+            endingLineNumber = "6005"
             landmarkName = "lookUpImpOrForward(inst, sel, cls, behavior)"
             landmarkType = "9">
          </BreakpointContent>
