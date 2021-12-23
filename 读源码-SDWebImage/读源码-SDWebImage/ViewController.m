@@ -33,6 +33,8 @@
     AFHTTPSessionManager *maneger = [AFHTTPSessionManager manager];
     _maneger = maneger;
 }
+- (IBAction)releaseAll:(id)sender {
+}
 
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event

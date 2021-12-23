@@ -10,3 +10,9 @@ pod 'SDWebImage'
 pod 'YYKit'
 pod 'AFNetworking'
 end
+
+
+target 'video_frame' do
+
+pod 'SDWebImage'
+end
