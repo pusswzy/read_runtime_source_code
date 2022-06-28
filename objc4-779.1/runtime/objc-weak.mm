@@ -349,6 +349,9 @@ weak_entry_for_referent(weak_table_t *weak_table, objc_object *referent)
     size_t index = begin;
     size_t hash_displacement = 0;
     while (weak_table->weak_entries[index].referent != referent) {
+        /*
+         mask 的值等于数组长度-1。而在下面的小节你会了解到，hash数组的长度会以64，128，256规律递增。总之，数组长度表现为二进制会是1000...0这种形式，即首位1，后面跟n个0。而这个值减1的话，则会变为011...1这种形式，即首位0，后面跟n个1，这即mask的二进制形式。那么用mask & hash_pointer(referent)时，就会保留hash_pointer(referent)的后n位的值，而首位被位与操作置为了0。那么这个值肯定是小于首位是1的数值的，也就是肯定会小于数组的长度。
+         */
         index = (index+1) & weak_table->mask;
         if (index == begin) bad_weak_table(weak_table->weak_entries);
         hash_displacement++;
@@ -426,7 +429,7 @@ weak_register_no_lock(weak_table_t *weak_table, id referent_id,
     objc_object *referent = (objc_object *)referent_id;
     objc_object **referrer = (objc_object **)referrer_id;
     // 不加引用了 直接给出去
-    __weak obj = nil;
+    // __weak obj = nil;
     if (!referent  ||  referent->isTaggedPointer()) return referent_id;
 
     // 确保被引用的对象可用（没有在析构，同时应该支持weak引用）

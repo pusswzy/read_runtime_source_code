@@ -12,7 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 // Taken from llvmCore-3425.0.31.
-
+#include <stdint.h>
 #ifndef LLVM_SUPPORT_MATHEXTRAS_H
 #define LLVM_SUPPORT_MATHEXTRAS_H
 

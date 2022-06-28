@@ -257,7 +257,11 @@ public:
     void set(SEL newSel, IMP newImp, Class cls);
 };
 
-
+/*
+ CACHE_MASK_STORAGE_OUTLINED 表示运行的环境 模拟器 或者 macOS
+ CACHE_MASK_STORAGE_HIGH_16 表示运行环境是ram64架构64位的真机
+ CACHE_MASK_STORAGE_LOW_4 表示运行环境是ram64架构非64位的真机
+ */
 struct cache_t {
 #if CACHE_MASK_STORAGE == CACHE_MASK_STORAGE_OUTLINED
     explicit_atomic<struct bucket_t *> _buckets;
@@ -281,7 +285,7 @@ struct cache_t {
     static constexpr uintptr_t bucketsMask = ((uintptr_t)1 << (maskShift - maskZeroBits)) - 1;
     
     // Ensure we have enough bits for the buckets pointer.
-    static_assert(bucketsMask >= MACH_VM_MAX_ADDRESS, "Bucket field doesn't have enough bits for arbitrary pointers.");
+//    static_assert(bucketsMask >= MACH_VM_MAX_ADDRESS, "Bucket field doesn't have enough bits for arbitrary pointers.");
 #elif CACHE_MASK_STORAGE == CACHE_MASK_STORAGE_LOW_4
     // _maskAndBuckets stores the mask shift in the low 4 bits, and
     // the buckets pointer in the remainder of the value. The mask
@@ -893,6 +897,7 @@ class list_array_tt {
     /*                       addedLists刚好指向有数据的头部元素
      rw->methods.attachLists(mlists + ATTACH_BUFSIZ - mcount, mcount);
      */
+    // 相当于二维数组合并一个二维数组
     void attachLists(List* const * addedLists, uint32_t addedCount) {
         if (addedCount == 0) return;
         

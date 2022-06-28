@@ -720,6 +720,7 @@ extern const fork_unsafe_lock_t fork_unsafe_lock;
 
 template <bool Debug>
 class mutex_tt : nocopy_t {
+    ///!!!: 本质是这个
     os_unfair_lock mLock;
  public:
     constexpr mutex_tt() : mLock(OS_UNFAIR_LOCK_INIT) {

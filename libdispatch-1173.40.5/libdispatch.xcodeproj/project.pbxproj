@@ -1022,6 +1022,7 @@
 				6E4BACBC1D48A41500B562AE /* mach.c */,
 				9661E56A0F3E7DDF00749F3E /* object.c */,
 				E4FC3263145F46C9002FBDDB /* object.m */,
+				96C9553A0F3EAEDD000D2CA4 /* once.h */,
 				96DF70BD0F38FE3C0074BD99 /* once.c */,
 				FC7BED8A0E8361E600161930 /* queue.c */,
 				721F5CCE0F15553500FF03A6 /* semaphore.c */,
@@ -1343,7 +1344,6 @@
 				5AAB45C310D30CC7004407EA /* io.h */,
 				C901445E1C73A7FE002638FC /* module.modulemap */,
 				961B994F0F3E85C30006BC96 /* object.h */,
-				96C9553A0F3EAEDD000D2CA4 /* once.h */,
 				FC7BED8B0E8361E600161930 /* queue.h */,
 				721F5C5C0F15520500FF03A6 /* semaphore.h */,
 				FC7BED8D0E8361E600161930 /* source.h */,
@@ -1882,7 +1882,6 @@
 		08FB7793FE84155DC02AAC07 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				BuildIndependentTargetsInParallel = YES;
 				DefaultBuildSystemTypeForWorkspace = Latest;
 				LastUpgradeCheck = 1100;
 				TargetAttributes = {

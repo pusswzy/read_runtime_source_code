@@ -228,6 +228,7 @@ static header_info * addHeader(const headerType *mhdr, const char *path, int &to
     bool inSharedCache = false;
 
     // Look for hinfo from the dyld shared cache.
+    // 判断当前的header在dyld的共享缓存中有没有 二分法
     hi = preoptimizedHinfoForHeader(mhdr);
     if (hi) {
         // Found an hinfo in the dyld shared cache.
@@ -451,12 +452,14 @@ void objc_addLoadImageFunc(objc_func_loadImage _Nonnull func) {
 #include "objc-file-old.h"
 #endif
 
-
+///!!!: 我的理解就是mhCount的mach_header的个数 mhPaths[]是每一个header的路径 mhdrs是header结构体数组
+// 加了一堆const
 void 
 map_images_nolock(unsigned mhCount, const char * const mhPaths[],
                   const struct mach_header * const mhdrs[])
 {
     static bool firstTime = YES;
+    /// 生成一个header_info数组 个数同mach_header一样
     header_info *hList[mhCount];
     uint32_t hCount;
     size_t selrefCount = 0;
@@ -465,6 +468,7 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
     // This function is called before ordinary library initializers. 
     // fixme defer initialization until an objc-using image is found?
     if (firstTime) {
+        // 共享内存优化
         preopt_init();
     }
 
@@ -477,8 +481,14 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
     {
         uint32_t i = mhCount;
         while (i--) {
+            /// 这就是为什么能强转的原因了
+            /*
+             typedef struct mach_header headerType;
+             typedef struct mach_header_64 headerType;
+             */
             const headerType *mhdr = (const headerType *)mhdrs[i];
-
+            // headType -> headInfo
+            // hi本身就是一个指针
             auto hi = addHeader(mhdr, mhPaths[i], totalClasses, unoptimizedTotalClasses);
             if (!hi) {
                 // no objc data in this entry
@@ -509,19 +519,8 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
                 selrefCount += count;
                 _getObjc2MessageRefs(hi, &count);
                 selrefCount += count;
-#else
-                _getObjcSelectorRefs(hi, &selrefCount);
-#endif
-                
-#if SUPPORT_GC_COMPAT
-                // Halt if this is a GC app.
-                if (shouldRejectGCApp(hi)) {
-                    _objc_fatal_with_reason
-                        (OBJC_EXIT_REASON_GC_NOT_SUPPORTED, 
-                         OS_REASON_FLAG_CONSISTENT_FAILURE, 
-                         "Objective-C garbage collection " 
-                         "is no longer supported.");
-                }
+//#else
+//                _getObjcSelectorRefs(hi, &selrefCount);
 #endif
             }
             
@@ -536,11 +535,22 @@ map_images_nolock(unsigned mhCount, const char * const mhPaths[],
     // executable does not contain Objective-C code but Objective-C 
     // is dynamically loaded later.
     if (firstTime) {
+        // 注册默认方法(load等)
         sel_init(selrefCount);
+        // 自动释放池和散列表初始化
         arr_init();
+        /*
+         void arr_init(void)
+         {
+             AutoreleasePoolPage::init();
+             SideTablesMap.init();
+             _objc_associations_init();
+         }
+         */
     }
 
     if (hCount > 0) {
+        /// 只要headerInfo有值 就会进入下一步_read_images
         ///!!!: 会调用readImage
         _read_images(hList, hCount, totalClasses, unoptimizedTotalClasses);
     }

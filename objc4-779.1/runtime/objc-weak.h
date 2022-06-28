@@ -73,7 +73,7 @@ typedef DisguisedPtr<objc_object *> weak_referrer_t;
  */
 #define WEAK_INLINE_COUNT 4
 
-// out_of_line_ness field overlaps with the low two bits of inline_referrers[1].
+// out_of_line_ness field overlaps with the low two bits of inline_referrers[1].  看明白了 共用体 9-10占据out_of_line_ness 刚好对应第一个元素
 // inline_referrers[1] is a DisguisedPtr of a pointer-aligned address.
 // The low two bits of a pointer-aligned DisguisedPtr will always be 0b00
 // (disguised nil or 0x80..00) or 0b11 (any other address).
@@ -89,6 +89,7 @@ struct weak_entry_t {
     union {
         ///  weak_entry_t有一个巧妙的设计，即如果一个对象对应的弱引用数目较少的话(<=WEAK_INLINE_COUNT，runtime把这个值设置为4)，则其弱引用会被依次保存到一个inline数组里
         ///!!!: 这两个数组是用来存储弱引用该对象的指针的指针的
+        ///!!!: 都占32位
         struct {
             // 动态数组
 #warning 这里难道是3个*??? 数组么 所以3个
@@ -119,7 +120,8 @@ struct weak_entry_t {
         return *this;
     }
 
-    /// 构造方法
+    /// 构造方法 __weak NSObject *obj = [NSObject alloc] init];
+    // newReferent = obj newReferrer = &obj
     weak_entry_t(objc_object *newReferent, objc_object **newReferrer) : referent(newReferent)
     {
         /// 数组里面存的是objc_object **
@@ -139,7 +141,7 @@ struct weak_table_t {
     weak_entry_t *weak_entries;
     size_t    num_entries;   // hash数组中的元素个数
     uintptr_t mask;         // hash数组长度-1，会参与hash计算。（注意，这里是hash数组的长度，而不是元素个数。比如，数组长度可能是64，而元素个数仅存了2个）
-    uintptr_t max_hash_displacement;
+    uintptr_t max_hash_displacement; /// 我感觉最大冲突数 每次插入新元素的时候都会更新 应该等于当前的数字
 };
 
 /// Adds an (object, weak pointer) pair to the weak table.

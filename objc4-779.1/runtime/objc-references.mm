@@ -203,7 +203,7 @@ _object_set_associative_reference(id object, const void *key, id value, uintptr_
             }
         }
     }
-
+///!!!: 果然会根据_policy进行释放旧的值
     // release the old value (outside of the lock).
     association.releaseHeldValue();
 }

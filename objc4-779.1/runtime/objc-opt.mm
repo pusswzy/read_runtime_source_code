@@ -358,7 +358,7 @@ namespace objc_opt {
 struct objc_headeropt_ro_t {
     uint32_t count;
     uint32_t entsize;
-    header_info headers[0];  // sorted by mhdr address
+    header_info headers[0];  // sorted by mhdr address 用地址做排序
 
     header_info *get(const headerType *mhdr) 
     {
@@ -367,7 +367,7 @@ struct objc_headeropt_ro_t {
         int32_t start = 0;
         int32_t end = count;
         while (start <= end) {
-            int32_t i = (start+end)/2;
+            int32_t i = (start+end)/2; /// 二分法写的不是很规矩啊
             header_info *hi = headers+i;
             if (mhdr == hi->mhdr()) return hi;
             else if (mhdr < hi->mhdr()) end = i-1;
@@ -398,11 +398,6 @@ struct objc_headeropt_rw_t {
 
 header_info *preoptimizedHinfoForHeader(const headerType *mhdr)
 {
-#if !__OBJC2__
-    // fixme old ABI shared cache doesn't prepare these properly
-    return nil;
-#endif
-
     objc_headeropt_ro_t *hinfos = opt ? opt->headeropt_ro() : nil;
     if (hinfos) return hinfos->get(mhdr);
     else return nil;
