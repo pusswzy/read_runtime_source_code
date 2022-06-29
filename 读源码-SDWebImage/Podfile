@@ -7,6 +7,20 @@ target '读源码-SDWebImage' do
 
   # Pods for 读源码-SDWebImage
 pod 'SDWebImage'
-pod 'YYKit'
+pod 'YYCache'
+pod 'YYModel'
 pod 'AFNetworking'
+end
+
+
+target 'video_frame' do
+
+pod 'SDWebImage'
+end
+
+target 'test' do
+
+pod 'YYCache'
+pod 'YYModel'
+
 end

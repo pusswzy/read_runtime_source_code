@@ -10,6 +10,7 @@
 #import "Person.h"
 #import <AFNetworking/AFNetworking.h>
 #import <SDWebImage/UIImageView+WebCache.h>
+
 @interface ViewController () <NSURLSessionDataDelegate> {
     AFHTTPSessionManager *_maneger;
 }
@@ -32,6 +33,8 @@
 
     AFHTTPSessionManager *maneger = [AFHTTPSessionManager manager];
     _maneger = maneger;
+}
+- (IBAction)releaseAll:(id)sender {
 }
 
 

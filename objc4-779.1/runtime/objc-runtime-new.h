@@ -542,6 +542,9 @@ struct method_t {
     SEL name;
     const char *types;
     MethodListIMP imp;
+    
+    
+    
 ///!!!: 就是根据方法的SEL进行的排序
     struct SortBySELAddress :
         public std::binary_function<const method_t&,

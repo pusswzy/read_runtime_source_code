@@ -5826,7 +5826,7 @@ Method class_getInstanceMethod(Class cls, SEL sel)
 
 #warning fixme build and search caches
         
-    ///!!!: 调用了一次动态方法解析 是为了给机会resolver
+    ///!!!: 调用了一次动态方法解析 是为了给机会resolver, 动态添加完方法后 就会
     // 也就是会从继承链条查找这个方法
     // Search method lists, try method resolver, etc.
     lookUpImpOrForward(nil, sel, cls, LOOKUP_RESOLVER);
@@ -7050,6 +7050,7 @@ static void objc_initializeClassPair_internal(Class superclass, const char *name
         uint32_t flagsToCopy = RW_FORBIDS_ASSOCIATED_OBJECTS;
         cls->data()->flags |= superclass->data()->flags & flagsToCopy;
         cls_ro_w->instanceStart = superclass->unalignedInstanceSize();
+        /// 传过来的两个类就是干净的两个类 然后根据是否meta赋值不一样的数据
         meta_ro_w->instanceStart = superclass->ISA()->unalignedInstanceSize();
         cls->setInstanceSize(cls_ro_w->instanceStart);
         meta->setInstanceSize(meta_ro_w->instanceStart);
@@ -7174,6 +7175,7 @@ Class objc_allocateClassPair(Class superclass, const char *name,
 
     // Allocate new classes.
     cls  = alloc_class_for_subclass(superclass, extraBytes);
+    // 元类不得复制对应的类方法么
     meta = alloc_class_for_subclass(superclass, extraBytes);
 
     // fixme mangle the name if it looks swift-y?
