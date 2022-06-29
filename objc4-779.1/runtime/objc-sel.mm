@@ -131,10 +131,10 @@ static SEL __sel_registerName(const char *name, bool shouldLock, bool copy)
     SEL result = 0;
     // 李昊泽改源码
   
-    if (name == nullptr) {
-        return 0;;
-    }
-    char aa = *name;
+//    if (name == nullptr) {
+//        return 0;;
+//    }
+//    char aa = *name;
     
     
     if (shouldLock) selLock.assertUnlocked();
