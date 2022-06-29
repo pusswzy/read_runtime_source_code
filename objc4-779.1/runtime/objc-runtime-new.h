@@ -285,7 +285,7 @@ struct cache_t {
     static constexpr uintptr_t bucketsMask = ((uintptr_t)1 << (maskShift - maskZeroBits)) - 1;
     
     // Ensure we have enough bits for the buckets pointer.
-    static_assert(bucketsMask >= MACH_VM_MAX_ADDRESS, "Bucket field doesn't have enough bits for arbitrary pointers.");
+//    static_assert(bucketsMask >= MACH_VM_MAX_ADDRESS, "Bucket field doesn't have enough bits for arbitrary pointers.");
 #elif CACHE_MASK_STORAGE == CACHE_MASK_STORAGE_LOW_4
     // _maskAndBuckets stores the mask shift in the low 4 bits, and
     // the buckets pointer in the remainder of the value. The mask
@@ -542,6 +542,9 @@ struct method_t {
     SEL name;
     const char *types;
     MethodListIMP imp;
+    
+    
+    
 ///!!!: 就是根据方法的SEL进行的排序
     struct SortBySELAddress :
         public std::binary_function<const method_t&,
@@ -928,7 +931,7 @@ class list_array_tt {
             uint32_t oldCount = oldList ? 1 : 0;
             uint32_t newCount = oldCount + addedCount;
             setArray((array_t *)malloc(array_t::byteSize(newCount)));
-            array()->count = h;
+            array()->count = newCount;
             // 把原来的一个小臂崽子给我放到尾部
             if (oldList) array()->lists[addedCount] = oldList;
             memcpy(array()->lists, addedLists, 

@@ -161,8 +161,9 @@ STATIC_ASSERT((ISA_MASK & ISA_MAGIC_MASK) == 0);
 STATIC_ASSERT((~ISA_MAGIC_MASK & ISA_MAGIC_VALUE) == 0);
 
 // die if virtual address space bound goes up
-STATIC_ASSERT((~ISA_MASK & MACH_VM_MAX_ADDRESS) == 0  ||  
-              ISA_MASK + sizeof(void*) == MACH_VM_MAX_ADDRESS);
+#warning 李昊泽屏蔽
+//STATIC_ASSERT((~ISA_MASK & MACH_VM_MAX_ADDRESS) == 0  ||
+//              ISA_MASK + sizeof(void*) == MACH_VM_MAX_ADDRESS);
 
 // SUPPORT_PACKED_ISA
 #else
@@ -5967,6 +5968,7 @@ resolveMethod_locked(id inst, SEL sel, Class cls, int behavior)
 }
 
 
+
 /***********************************************************************
 * log_and_fill_cache
 * Log this method call. If the logger permits it, fill the method cache.
@@ -6002,13 +6004,16 @@ log_and_fill_cache(Class cls, IMP imp, SEL sel, id receiver, Class implementer)
 *   If you don't want forwarding at all, use LOOKUP_NIL.
 **********************************************************************/
 /* method lookup */
-enum {
-    LOOKUP_INITIALIZE = 1, 0
-    LOOKUP_RESOLVER = 2, 1>>1
-    LOOKUP_CACHE = 4, 1>>2
-    LOOKUP_NIL = 8, 1>>3
-};
-
+//enum {
+//    LOOKUP_INITIALIZE = 1, 0
+//    LOOKUP_RESOLVER = 2, 1>>1
+//    LOOKUP_CACHE = 4, 1>>2
+//    LOOKUP_NIL = 8, 1>>3
+//};
+///< 我觉得这个就算是核心代码了 objc_msg_send 最后会调用这个方法
+/*
+ lookUpImpOrForward方法的目的在于根据class和SEL，在class或其super class中找到并返回对应的实现IMP，同时，cache所找到的IMP到当前class中。如果没有找到对应IMP，lookUpImpOrForward会进入消息转发流程
+ */
 IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
 {
     const IMP forward_imp = (IMP)_objc_msgForward_impcache;

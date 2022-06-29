@@ -84,7 +84,8 @@ typedef DisguisedPtr<objc_object *> weak_referrer_t;
 // weak_referrer_t 就是objc_object **
 struct weak_entry_t {
     // 阅后即焚 DisguisedPtr<objc_object> 会让<>进一个*
-    DisguisedPtr<objc_object> referent;
+    DisguisedPtr<objc_object> referent; // weak_entry_t会持有对象 那么一个weakEntry就会为一个对象服务了么??
+    
     union {
         ///  weak_entry_t有一个巧妙的设计，即如果一个对象对应的弱引用数目较少的话(<=WEAK_INLINE_COUNT，runtime把这个值设置为4)，则其弱引用会被依次保存到一个inline数组里
         ///!!!: 这两个数组是用来存储弱引用该对象的指针的指针的
@@ -155,7 +156,7 @@ void weak_unregister_no_lock(weak_table_t *weak_table, id referent, id *referrer
 bool weak_is_registered_no_lock(weak_table_t *weak_table, id referent);
 #endif
 
-///!!!: dealloc的实现???
+///!!!: dealloc的时候 如果发现对象有弱引用就会调用这个方法释放所有的weak指针
 /// Called on object destruction. Sets all remaining weak pointers to nil.
 void weak_clear_no_lock(weak_table_t *weak_table, id referent);
 

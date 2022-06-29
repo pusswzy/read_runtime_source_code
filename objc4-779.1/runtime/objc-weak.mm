@@ -140,7 +140,7 @@ static void append_referrer(weak_entry_t *entry, objc_object **new_referrer)
         entry->out_of_line_ness = REFERRERS_OUT_OF_LINE;
         entry->mask = WEAK_INLINE_COUNT-1;
         entry->max_hash_displacement = 0;
-    }
+    } // new_referrer还没有被添加进去呢
     // 必须已经使用outline了
     ASSERT(entry->out_of_line());
 
@@ -211,6 +211,20 @@ static void remove_referrer(weak_entry_t *entry, objc_object **old_referrer)
             return;
         }
     }
+    /// 这里想不通了 到底是清空数组还是将引用置空呢?
+    /*
+     Person *pp;
+     NSMutableArray *array = [NSMutableArray array];
+     self.array = array;
+     [array addObject:pp];
+     
+     崩溃
+     */
+    /*
+     还是取引用, 也就是数组中仍然包含哪些弱指针的地址, 但是弱指针内为nil了
+     entry -> referrer -> *obj - > nil
+     饶了好几层
+     */
     entry->referrers[index] = nil;
     entry->num_refs--;
 }
@@ -369,8 +383,8 @@ void
 weak_unregister_no_lock(weak_table_t *weak_table, id referent_id, 
                         id *referrer_id)
 {
-    objc_object *referent = (objc_object *)referent_id;
-    objc_object **referrer = (objc_object **)referrer_id;
+    objc_object *referent = (objc_object *)referent_id; //
+    objc_object **referrer = (objc_object **)referrer_id; // id*
 
     weak_entry_t *entry;
 
@@ -415,9 +429,10 @@ weak_register_no_lock(weak_table_t *weak_table, id referent_id,
     objc_object *referent = (objc_object *)referent_id;
     objc_object **referrer = (objc_object **)referrer_id;
     // 不加引用了 直接给出去
+    // __weak obj = nil;
     if (!referent  ||  referent->isTaggedPointer()) return referent_id;
 
-    // ensure that the referenced object is viable
+    // 确保被引用的对象可用（没有在析构，同时应该支持weak引用）
     bool deallocating;
     if (!referent->ISA()-> hasCustomRR()) {
         deallocating = referent->rootIsDeallocating();
@@ -450,6 +465,8 @@ weak_register_no_lock(weak_table_t *weak_table, id referent_id,
         append_referrer(entry, referrer);
     } 
     else {
+        // weakTable是持有着 所有保存对象和其弱引用指针地址的entry_t结构的哈希表
+        // entry_t持有者referrer, 也就是说一个entry_t只为一个对象服务
         weak_entry_t new_entry(referent, referrer);
         weak_grow_maybe(weak_table);
         weak_entry_insert(weak_table, &new_entry);
@@ -506,7 +523,7 @@ weak_clear_no_lock(weak_table_t *weak_table, id referent_id)
         objc_object **referrer = referrers[i];
         if (referrer) {
             /// 这行为什么能这么判断 其实得看外面赋值的时候是怎么赋值的 仅此而已
-            if (*referrer == referent) {
+            if (*referrer == referent) { /// // 如果weak ptr确实weak引用了referent，则将weak ptr设置为nil，这也就是为什么weak 指针会自动设置为nil的原因
                 *referrer = nil;
             }
             else if (*referrer) {
