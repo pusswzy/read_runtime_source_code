@@ -113,36 +113,38 @@
             UIImage *iii = [[UIImage alloc] initWithCGImage:cgimage];
             [self.dataSource addObject:iii];
             CGImageRelease(cgimage);
-//            [gen generateCGImagesAsynchronouslyForTimes:@[obj] completionHandler:^(CMTime requestedTime, CGImageRef  _Nullable image, CMTime actualTime, AVAssetImageGeneratorResult result, NSError * _Nullable error) {
-//                if (image) {
-//                    UIImage *ui_image = [[UIImage alloc] initWithCGImage:image];
-//
-//                    if (ui_image) {
-//                        //                        [imageCache storeImage:mage forKey:key toDisk:YES completion:^{
-//                        //
-//                        //                                                    CFRelease(image);
-//                        //                        }];
-//#warning 释放image的节点十分重要 因为缓存是异步的 内部会对图片进行编解码 如果cgIMage已经释放了,就会导致崩溃 [保存到磁盘]
-//#warning 时间轴的图片完全不需要写入到磁盘中 这点事非常重要的, 只用到内存缓存即可.
-//#warning 注意CGImage释放了 对应的image也就释放了么?
-//#warning 如果只用内存缓存的话 是否会导致很大的问题? CGImage的内存泄漏呢??
-//                        //                        [imageCache storeImage:mage forKey:key completion:^{
-//                        //
-//                        //                        }];
-//
-//                            [self.dataSource addObject:ui_image];
-//                            CGImageRelease(image);
-//                            dispatch_async(dispatch_get_main_queue(), ^{
-//                                self.imageView.image = ui_image;
-//                            });
-//
-//                        NSLog(@"genergate缓存---%zd--%@--%@--%@", curIndex, ui_image, key, image);
-//                    } else {
-//                        NSLog(@"神奇");
-//                        CFRelease(image);
-//                    }
-//                }
-//            }];
+            
+            
+            [gen generateCGImagesAsynchronouslyForTimes:@[obj] completionHandler:^(CMTime requestedTime, CGImageRef  _Nullable image, CMTime actualTime, AVAssetImageGeneratorResult result, NSError * _Nullable error) {
+                if (image) {
+                    UIImage *ui_image = [[UIImage alloc] initWithCGImage:image];
+
+                    if (ui_image) {
+                        //                        [imageCache storeImage:mage forKey:key toDisk:YES completion:^{
+                        //
+                        //                                                    CFRelease(image);
+                        //                        }];
+#warning 释放image的节点十分重要 因为缓存是异步的 内部会对图片进行编解码 如果cgIMage已经释放了,就会导致崩溃 [保存到磁盘]
+#warning 时间轴的图片完全不需要写入到磁盘中 这点事非常重要的, 只用到内存缓存即可.
+#warning 注意CGImage释放了 对应的image也就释放了么?
+#warning 如果只用内存缓存的话 是否会导致很大的问题? CGImage的内存泄漏呢??
+                        //                        [imageCache storeImage:mage forKey:key completion:^{
+                        //
+                        //                        }];
+
+                            [self.dataSource addObject:ui_image];
+                            CGImageRelease(image);
+                            dispatch_async(dispatch_get_main_queue(), ^{
+                                self.imageView.image = ui_image;
+                            });
+
+                        NSLog(@"genergate缓存---%zd--%@--%@--%@", curIndex, ui_image, key, image);
+                    } else {
+                        NSLog(@"神奇");
+                        CFRelease(image);
+                    }
+                }
+            }];
         } else {
             NSLog(@"有缓存--%zd", curIndex);
             @synchronized (self) {
