@@ -329,6 +329,7 @@
 		B8AEAD8E286C3286007826C3 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		B8AEAD93286C3290007826C3 /* Person.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Person.h; sourceTree = "<group>"; };
 		B8AEAD94286C3290007826C3 /* Person.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Person.m; sourceTree = "<group>"; };
+		B8AEAD9C286D7BA5007826C3 /* reference.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = reference.md; sourceTree = "<group>"; };
 		BC8B5D1212D3D48100C78A5B /* libauto.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libauto.dylib; path = /usr/lib/libauto.dylib; sourceTree = "<absolute>"; };
 		C217B55222DE556D004369BA /* objc-env.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "objc-env.h"; path = "runtime/objc-env.h"; sourceTree = "<group>"; };
 		C22F5207230EF38B001BFE14 /* objc-ptrauth.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "objc-ptrauth.h"; path = "runtime/objc-ptrauth.h"; sourceTree = "<group>"; };
@@ -586,6 +587,7 @@
 		B8AEAD8D286C3286007826C3 /* lookin_runtime */ = {
 			isa = PBXGroup;
 			children = (
+				B8AEAD9C286D7BA5007826C3 /* reference.md */,
 				B8AEAD8E286C3286007826C3 /* main.m */,
 				B8AEAD93286C3290007826C3 /* Person.h */,
 				B8AEAD94286C3290007826C3 /* Person.m */,

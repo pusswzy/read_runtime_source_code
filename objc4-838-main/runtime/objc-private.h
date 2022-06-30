@@ -93,6 +93,15 @@ public:
 #if defined(ISA_BITFIELD)
     struct {
         ISA_BITFIELD;  // defined in isa.h
+//        uintptr_t nonpointer        : 1;                                         \
+//        uintptr_t has_assoc         : 1;                                         \
+//        uintptr_t has_cxx_dtor      : 1;                                         \
+//        uintptr_t shiftcls          : 44; /*MACH_VM_MAX_ADDRESS 0x7fffffe00000*/ \
+//        uintptr_t magic             : 6;                                         \
+//        uintptr_t weakly_referenced : 1;                                         \
+//        uintptr_t unused            : 1;                                         \
+//        uintptr_t has_sidetable_rc  : 1;                                         \
+//        uintptr_t extra_rc          : 8
     };
 
     bool isDeallocating() {
@@ -112,6 +121,7 @@ public:
 
 struct objc_object {
 private:
+    // init_isa时候进行赋值 
     isa_t isa;
 
 public:

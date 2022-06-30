@@ -46,10 +46,42 @@
             filePath = "runtime/NSObject.mm"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "2568"
-            endingLineNumber = "2568"
+            startingLineNumber = "2570"
+            endingLineNumber = "2570"
             landmarkName = "+init"
             landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "BD861D77-62B0-45C5-B083-E83A74629BAF - 399f4999ed31fd67"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "-[NSObject init]"
+                  moduleName = "libobjc.A.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/wangze/Desktop/%E4%B8%BB%E7%BA%BF%E7%A8%8B/read_runtime_source_code/objc4-838-main/runtime/NSObject.mm"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "2572"
+                  endingLineNumber = "2572"
+                  offsetFromSymbolStart = "16">
+               </Location>
+               <Location
+                  uuid = "BD861D77-62B0-45C5-B083-E83A74629BAF - a0e861781e59edb"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "+[NSObject init]"
+                  moduleName = "libobjc.A.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/wangze/Desktop/%E4%B8%BB%E7%BA%BF%E7%A8%8B/read_runtime_source_code/objc4-838-main/runtime/NSObject.mm"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "2570"
+                  endingLineNumber = "2570"
+                  offsetFromSymbolStart = "12">
+               </Location>
+            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -62,8 +94,8 @@
             filePath = "lookin_runtime/main.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "14"
-            endingLineNumber = "14"
+            startingLineNumber = "16"
+            endingLineNumber = "16"
             landmarkName = "main(argc, argv)"
             landmarkType = "9">
          </BreakpointContent>
@@ -78,8 +110,8 @@
             filePath = "lookin_runtime/main.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "12"
-            endingLineNumber = "12"
+            startingLineNumber = "13"
+            endingLineNumber = "13"
             landmarkName = "main(argc, argv)"
             landmarkType = "9">
          </BreakpointContent>
@@ -87,155 +119,107 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "3E8180BD-E826-4DB9-90F0-8324ED40CE6F"
-            shouldBeEnabled = "Yes"
+            uuid = "0D69EDCC-FB1C-4DC8-93D5-6BE94C516245"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "runtime/objc-runtime-new.mm"
+            filePath = "runtime/NSObject.mm"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "8021"
-            endingLineNumber = "8021"
-            landmarkName = "_class_createInstanceFromZone(cls, extraBytes, zone, OBJECT_CONSTRUCT_NONE)"
+            startingLineNumber = "1893"
+            endingLineNumber = "1893"
+            landmarkName = "callAlloc(cls, checkNil)"
             landmarkType = "9">
             <Locations>
                <Location
-                  uuid = "3E8180BD-E826-4DB9-90F0-8324ED40CE6F - 54740eea0c368d33"
+                  uuid = "0D69EDCC-FB1C-4DC8-93D5-6BE94C516245 - e70b167789f8d023"
                   shouldBeEnabled = "Yes"
                   ignoreCount = "0"
                   continueAfterRunningActions = "No"
-                  symbolName = "class_createInstance"
+                  symbolName = "_objc_rootAlloc"
                   moduleName = "libobjc.A.dylib"
                   usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/wangze/Desktop/%E4%B8%BB%E7%BA%BF%E7%A8%8B/read_runtime_source_code/objc4-838-main/runtime/objc-runtime-new.mm"
+                  urlString = "file:///Users/wangze/Desktop/%E4%B8%BB%E7%BA%BF%E7%A8%8B/read_runtime_source_code/objc4-838-main/runtime/NSObject.mm"
                   startingColumnNumber = "9223372036854775807"
                   endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "8021"
-                  endingLineNumber = "8021"
-                  offsetFromSymbolStart = "218">
+                  startingLineNumber = "1893"
+                  endingLineNumber = "1893"
+                  offsetFromSymbolStart = "119">
                </Location>
                <Location
-                  uuid = "3E8180BD-E826-4DB9-90F0-8324ED40CE6F - 2bb25b1480fee95b"
+                  uuid = "0D69EDCC-FB1C-4DC8-93D5-6BE94C516245 - 2405c4560cba042b"
                   shouldBeEnabled = "Yes"
                   ignoreCount = "0"
                   continueAfterRunningActions = "No"
-                  symbolName = "_objc_rootAllocWithZone"
+                  symbolName = "objc_alloc"
                   moduleName = "libobjc.A.dylib"
                   usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/wangze/Desktop/%E4%B8%BB%E7%BA%BF%E7%A8%8B/read_runtime_source_code/objc4-838-main/runtime/objc-runtime-new.mm"
+                  urlString = "file:///Users/wangze/Desktop/%E4%B8%BB%E7%BA%BF%E7%A8%8B/read_runtime_source_code/objc4-838-main/runtime/NSObject.mm"
                   startingColumnNumber = "9223372036854775807"
                   endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "8021"
-                  endingLineNumber = "8021"
-                  offsetFromSymbolStart = "194">
+                  startingLineNumber = "1893"
+                  endingLineNumber = "1893"
+                  offsetFromSymbolStart = "119">
                </Location>
                <Location
-                  uuid = "3E8180BD-E826-4DB9-90F0-8324ED40CE6F - 9f245993771f8fe9"
+                  uuid = "0D69EDCC-FB1C-4DC8-93D5-6BE94C516245 - ef44a61f83c3746b"
                   shouldBeEnabled = "Yes"
                   ignoreCount = "0"
                   continueAfterRunningActions = "No"
-                  symbolName = "_object_copyFromZone(objc_object*, unsigned long, void*)"
+                  symbolName = "objc_allocWithZone"
                   moduleName = "libobjc.A.dylib"
                   usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/wangze/Desktop/%E4%B8%BB%E7%BA%BF%E7%A8%8B/read_runtime_source_code/objc4-838-main/runtime/objc-runtime-new.mm"
+                  urlString = "file:///Users/wangze/Desktop/%E4%B8%BB%E7%BA%BF%E7%A8%8B/read_runtime_source_code/objc4-838-main/runtime/NSObject.mm"
                   startingColumnNumber = "9223372036854775807"
                   endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "8021"
-                  endingLineNumber = "8021"
-                  offsetFromSymbolStart = "263">
+                  startingLineNumber = "1893"
+                  endingLineNumber = "1893"
+                  offsetFromSymbolStart = "119">
                </Location>
                <Location
-                  uuid = "3E8180BD-E826-4DB9-90F0-8324ED40CE6F - 2052501ec1fb4f6b"
+                  uuid = "0D69EDCC-FB1C-4DC8-93D5-6BE94C516245 - 5c92f789be7be913"
                   shouldBeEnabled = "Yes"
                   ignoreCount = "0"
                   continueAfterRunningActions = "No"
-                  symbolName = "class_createInstanceFromZone"
+                  symbolName = "objc_alloc_init"
                   moduleName = "libobjc.A.dylib"
                   usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/wangze/Desktop/%E4%B8%BB%E7%BA%BF%E7%A8%8B/read_runtime_source_code/objc4-838-main/runtime/objc-runtime-new.mm"
+                  urlString = "file:///Users/wangze/Desktop/%E4%B8%BB%E7%BA%BF%E7%A8%8B/read_runtime_source_code/objc4-838-main/runtime/NSObject.mm"
                   startingColumnNumber = "9223372036854775807"
                   endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "8021"
-                  endingLineNumber = "8021"
-                  offsetFromSymbolStart = "222">
-               </Location>
-            </Locations>
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "B5813344-E14B-48D4-843E-270D3AB5F102"
-            shouldBeEnabled = "Yes"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "runtime/objc-runtime-new.mm"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "8020"
-            endingLineNumber = "8020"
-            landmarkName = "_class_createInstanceFromZone(cls, extraBytes, zone, OBJECT_CONSTRUCT_NONE)"
-            landmarkType = "9">
-            <Locations>
-               <Location
-                  uuid = "B5813344-E14B-48D4-843E-270D3AB5F102 - 54740eea0c368dd4"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "class_createInstance"
-                  moduleName = "libobjc.A.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/wangze/Desktop/%E4%B8%BB%E7%BA%BF%E7%A8%8B/read_runtime_source_code/objc4-838-main/runtime/objc-runtime-new.mm"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "8020"
-                  endingLineNumber = "8020"
-                  offsetFromSymbolStart = "201">
+                  startingLineNumber = "1893"
+                  endingLineNumber = "1893"
+                  offsetFromSymbolStart = "119">
                </Location>
                <Location
-                  uuid = "B5813344-E14B-48D4-843E-270D3AB5F102 - 2bb25b1480fee9bc"
+                  uuid = "0D69EDCC-FB1C-4DC8-93D5-6BE94C516245 - 187e91d309ec2c3c"
                   shouldBeEnabled = "Yes"
                   ignoreCount = "0"
                   continueAfterRunningActions = "No"
-                  symbolName = "_objc_rootAllocWithZone"
+                  symbolName = "objc_opt_new"
                   moduleName = "libobjc.A.dylib"
                   usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/wangze/Desktop/%E4%B8%BB%E7%BA%BF%E7%A8%8B/read_runtime_source_code/objc4-838-main/runtime/objc-runtime-new.mm"
+                  urlString = "file:///Users/wangze/Desktop/%E4%B8%BB%E7%BA%BF%E7%A8%8B/read_runtime_source_code/objc4-838-main/runtime/NSObject.mm"
                   startingColumnNumber = "9223372036854775807"
                   endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "8020"
-                  endingLineNumber = "8020"
-                  offsetFromSymbolStart = "177">
+                  startingLineNumber = "1893"
+                  endingLineNumber = "1893"
+                  offsetFromSymbolStart = "175">
                </Location>
                <Location
-                  uuid = "B5813344-E14B-48D4-843E-270D3AB5F102 - 9f245993771f8f0e"
+                  uuid = "0D69EDCC-FB1C-4DC8-93D5-6BE94C516245 - dc7af90bfc55996d"
                   shouldBeEnabled = "Yes"
                   ignoreCount = "0"
                   continueAfterRunningActions = "No"
-                  symbolName = "_object_copyFromZone(objc_object*, unsigned long, void*)"
+                  symbolName = "+[NSObject new]"
                   moduleName = "libobjc.A.dylib"
                   usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/wangze/Desktop/%E4%B8%BB%E7%BA%BF%E7%A8%8B/read_runtime_source_code/objc4-838-main/runtime/objc-runtime-new.mm"
+                  urlString = "file:///Users/wangze/Desktop/%E4%B8%BB%E7%BA%BF%E7%A8%8B/read_runtime_source_code/objc4-838-main/runtime/NSObject.mm"
                   startingColumnNumber = "9223372036854775807"
                   endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "8020"
-                  endingLineNumber = "8020"
-                  offsetFromSymbolStart = "246">
-               </Location>
-               <Location
-                  uuid = "B5813344-E14B-48D4-843E-270D3AB5F102 - 2052501ec1fb4f8c"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "class_createInstanceFromZone"
-                  moduleName = "libobjc.A.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/wangze/Desktop/%E4%B8%BB%E7%BA%BF%E7%A8%8B/read_runtime_source_code/objc4-838-main/runtime/objc-runtime-new.mm"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "8020"
-                  endingLineNumber = "8020"
-                  offsetFromSymbolStart = "205">
+                  startingLineNumber = "1893"
+                  endingLineNumber = "1893"
+                  offsetFromSymbolStart = "123">
                </Location>
             </Locations>
          </BreakpointContent>

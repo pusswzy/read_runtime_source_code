@@ -1886,7 +1886,9 @@ static ALWAYS_INLINE id
 callAlloc(Class cls, bool checkNil, bool allocWithZone=false)
 {
 #if __OBJC2__
+    // 3.1 判定是否检查cls是否为空,如果检查,为空则返回nil
     if (slowpath(checkNil && !cls)) return nil;
+    // // 3.2 检查本类、父类的继承链上是否有实现自己的allocWithZone方法,如果没有,就默认调用元类的
     if (fastpath(!cls->ISA()->hasCustomAWZ())) {
         return _objc_rootAllocWithZone(cls, nil);
     }

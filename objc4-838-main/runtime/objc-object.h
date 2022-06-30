@@ -324,12 +324,14 @@ objc_object::initInstanceIsa(Class cls, bool hasCxxDtor)
 
 inline void 
 objc_object::initIsa(Class cls, bool nonpointer, UNUSED_WITHOUT_INDEXED_ISA_AND_DTOR_BIT bool hasCxxDtor)
-{ 
+{
+    // 如果是taggedPointer就崩溃了
     ASSERT(!isTaggedPointer()); 
     
     isa_t newisa(0);
 
     if (!nonpointer) {
+        // isa就是一个指针
         newisa.setClass(cls, this);
     } else {
         ASSERT(!DisableNonpointerIsa);
@@ -344,6 +346,7 @@ objc_object::initIsa(Class cls, bool nonpointer, UNUSED_WITHOUT_INDEXED_ISA_AND_
         newisa.has_cxx_dtor = hasCxxDtor;
         newisa.indexcls = (uintptr_t)cls->classArrayIndex();
 #else
+        /// 可以理解为一个初始的值 https://draveness.me/isa/
         newisa.bits = ISA_MAGIC_VALUE;
         // isa.magic is part of ISA_MAGIC_VALUE
         // isa.nonpointer is part of ISA_MAGIC_VALUE

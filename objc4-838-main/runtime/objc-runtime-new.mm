@@ -8009,11 +8009,14 @@ _class_createInstanceFromZone(Class cls, size_t extraBytes, void *zone,
                               bool cxxConstruct = true,
                               size_t *outAllocatedSize = nil)
 {
+    // 6.1 如果类对象本身没有被实现,则发出警告,并终止程序
     ASSERT(cls->isRealized());
 
+    // 6.2 通过位运算获取类的信息,以提高性能
     // Read class's info bits all at once for performance
     bool hasCxxCtor = cxxConstruct && cls->hasCxxCtor();
     bool hasCxxDtor = cls->hasCxxDtor();
+    // //如果isa_t指针可用,则为true,反之为false,2.0版本中绝大多数类都是支持isa_t的,
     bool fast = cls->canAllocNonpointer();
     size_t size;
 
@@ -8033,7 +8036,9 @@ _class_createInstanceFromZone(Class cls, size_t extraBytes, void *zone,
         return nil;
     }
 
+    // 初始化isa指针
     if (!zone && fast) {
+        //initInstanceIsa方法内部也是调用initIsa方法,只是因没有空间并且有isa_t指针而传参不同
         obj->initInstanceIsa(cls, hasCxxDtor);
     } else {
         // Use raw pointer isa on the assumption that they might be
