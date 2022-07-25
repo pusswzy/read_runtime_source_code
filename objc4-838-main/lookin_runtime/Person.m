@@ -13,4 +13,8 @@
     NSLog(@"123");
 }
 
+- (void)instanceMethod {
+    NSLog(@"%s", __func__);
+}
+
 @end

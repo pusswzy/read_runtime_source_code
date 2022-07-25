@@ -66,6 +66,7 @@ class PointerUnion {
     static_assert(alignof(T1) >= 2, "alignment requirement");
     static_assert(alignof(T2) >= 2, "alignment requirement");
 
+    // 两个断言，PT1 和 PT2 内存对齐
     struct IsPT1 {
       static const uintptr_t Num = 0;
     };

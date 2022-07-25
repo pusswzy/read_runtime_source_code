@@ -824,7 +824,7 @@ void cache_t::bad_cache(id receiver, SEL sel)
         ("Method cache corrupted. This may be a message to an "
          "invalid object, or a memory error somewhere else.");
 }
-
+#warning TODO 李昊泽_缓存核心方法
 void cache_t::insert(SEL sel, IMP imp, id receiver)
 {
     runtimeLock.assertLocked();
@@ -849,14 +849,15 @@ void cache_t::insert(SEL sel, IMP imp, id receiver)
     ASSERT(sel != 0 && cls()->isInitialized());
 
     // Use the cache as-is if until we exceed our expected fill ratio.
-    mask_t newOccupied = occupied() + 1;
-    unsigned oldCapacity = capacity(), capacity = oldCapacity;
+    mask_t newOccupied = occupied() + 1; /// 获取最新的缓存方法数目 包含当前的 所以需要+1
+    unsigned oldCapacity = capacity(), capacity = oldCapacity; /// 获取buckets的最大容量，下面就是需不需要扩容的算法
     if (slowpath(isConstantEmptyCache())) {
         // Cache is read-only. Replace it.
         if (!capacity) capacity = INIT_CACHE_SIZE;
         reallocate(oldCapacity, capacity, /* freeOld */false);
     }
     else if (fastpath(newOccupied + CACHE_END_MARKER <= cache_fill_ratio(capacity))) {
+        // 如果缓存数量小于等于 3/4 + 1个（x86）或者 7/8（arm64），什么也不做 CACHE_END_MARKER在x86为1 arm64为0
         // Cache is less than 3/4 or 7/8 full. Use it as-is.
     }
 #if CACHE_ALLOW_FULL_UTILIZATION
@@ -865,7 +866,7 @@ void cache_t::insert(SEL sel, IMP imp, id receiver)
     }
 #endif
     else {
-        capacity = capacity ? capacity * 2 : INIT_CACHE_SIZE;
+        capacity = capacity ? capacity * 2 : INIT_CACHE_SIZE; /// 扩容为原来的2倍
         if (capacity > MAX_CACHE_SIZE) {
             capacity = MAX_CACHE_SIZE;
         }
@@ -873,8 +874,8 @@ void cache_t::insert(SEL sel, IMP imp, id receiver)
     }
 
     bucket_t *b = buckets();
-    mask_t m = capacity - 1;
-    mask_t begin = cache_hash(sel, m);
+    mask_t m = capacity - 1; /// 最大容量-1 为mask
+    mask_t begin = cache_hash(sel, m); /// sel-> unsigned long, 然后与mask取 & 操作, 这样得出的哈希值就不会超过bucket最大容量了
     mask_t i = begin;
 
     // Scan for the first unused slot and insert there.
@@ -882,15 +883,17 @@ void cache_t::insert(SEL sel, IMP imp, id receiver)
     do {
         if (fastpath(b[i].sel() == 0)) {
             incrementOccupied();
+            // bucket里面有两个成员变量 sel imp 这个方法就是填充这两个成员变量而已
             b[i].set<Atomic, Encoded>(b, sel, imp, cls());
             return;
         }
         if (b[i].sel() == sel) {
+            ///!!!: 牛逼 苹果工程师这都能考虑到了
             // The entry was added to the cache by some other thread
             // before we grabbed the cacheUpdateLock.
             return;
         }
-    } while (fastpath((i = cache_next(i, m)) != begin));
+    } while (fastpath((i = cache_next(i, m)) != begin)); /// 线性查找下一个方法
 
     bad_cache(receiver, (SEL)sel);
 #endif // !DEBUG_TASK_THREADS

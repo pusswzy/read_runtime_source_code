@@ -214,6 +214,7 @@ private:
     // IMP-first is better for arm64e ptrauth and no worse for arm64.
     // SEL-first is better for armv7* and i386 and x86_64.
 #if __arm64__
+    ///!!!: 函数实现和选择子
     explicit_atomic<uintptr_t> _imp;
     explicit_atomic<SEL> _sel;
 #else
@@ -331,16 +332,18 @@ extern "C" IMP cache_getImp(Class cls, SEL sel, IMP value_on_constant_cache_miss
 
 struct cache_t {
 private:
+    // 8字节
     explicit_atomic<uintptr_t> _bucketsAndMaybeMask;
+    // 共用体 共用8字节
     union {
         struct {
-            explicit_atomic<mask_t>    _maybeMask;
+            explicit_atomic<mask_t>    _maybeMask; // 4字节
 #if __LP64__
-            uint16_t                   _flags;
+            uint16_t                   _flags; // 2字节
 #endif
-            uint16_t                   _occupied;
+            uint16_t                   _occupied; // 2字节
         };
-        explicit_atomic<preopt_cache_t *> _originalPreoptCache;
+        explicit_atomic<preopt_cache_t *> _originalPreoptCache; // 注意这是指针 8个字节
     };
 
 #if CACHE_MASK_STORAGE == CACHE_MASK_STORAGE_OUTLINED
@@ -445,6 +448,7 @@ public:
     // hence doesn't care for locks and pesky little details like this
     // and can safely use these.
     unsigned capacity() const;
+///!!!:这就是cache的核心
     struct bucket_t *buckets() const;
     Class cls() const;
 
@@ -470,7 +474,7 @@ public:
     inline bool isConstantOptimizedCacheWithInlinedSels() const { return false; }
     inline void initializeToEmptyOrPreoptimizedInDisguise() { initializeToEmpty(); }
 #endif
-
+/// 核心方法
     void insert(SEL sel, IMP imp, id receiver);
     void copyCacheNolock(objc_imp_cache_entry *buffer, int len);
     void destroy();
@@ -611,6 +615,7 @@ struct PointerModifierNop {
 **********************************************************************/
 template <typename Element, typename List, uint32_t FlagMask, typename PointerModifier = PointerModifierNop>
 struct entsize_list_tt {
+    // entsize 和 flags 存在了一起，需要用 FlagMask 进行区分哪些 bits 里存的是 flags
     uint32_t entsizeAndFlags;
     uint32_t count;
 
@@ -1202,6 +1207,12 @@ struct class_ro_t {
 * countLists/beginLists/endLists iterate the metadata lists
 * count/begin/end iterate the underlying metadata elements
 **********************************************************************/
+/* ✨
+ 一个 list_array_tt 的值可能有三种情况：
+ - 空的
+ - 一个指针指向一个单独的列表 [数组]
+ - 一个数组，数组中都是指针，每个指针分别指向一个列表 [二维数组]
+ */
 template <typename Element, typename List, template<typename> class Ptr>
 class list_array_tt {
     struct array_t {
@@ -1377,6 +1388,7 @@ class list_array_tt {
         }
     }
 
+    // array_t的核心方法 我也觉得这就是runtime动态性的提现
     void attachLists(List* const * addedLists, uint32_t addedCount) {
         if (addedCount == 0) return;
 
@@ -1387,7 +1399,7 @@ class list_array_tt {
             array_t *newArray = (array_t *)malloc(array_t::byteSize(newCount));
             newArray->count = newCount;
             array()->count = newCount;
-
+///!!!: 头插法 新的列表会插入到二维数组的头部
             for (int i = oldCount - 1; i >= 0; i--)
                 newArray->lists[i + addedCount] = array()->lists[i];
             for (unsigned i = 0; i < addedCount; i++)
@@ -1402,6 +1414,7 @@ class list_array_tt {
             validate();
         } 
         else {
+            ///!!!: 这个注释不严谨 应该是0/1 lists
             // 1 list -> many lists
             Ptr<List> oldList = list;
             uint32_t oldCount = oldList ? 1 : 0;
@@ -1503,21 +1516,42 @@ struct class_rw_t {
 #endif
 
     explicit_atomic<uintptr_t> ro_or_rw_ext;
-
+    /// 当前所属类的第一个子类 测试时，定义了一个继承自 NSObject 的类，控制台打印看到它的 firstSubclass 是 nil
     Class firstSubclass;
+    /// 姊妹类、兄弟类 测试时，定义了一个继承自 NSObject 的类，控制台打印看到 nextSiblingClass 是 NSUUID（好奇怪）
     Class nextSiblingClass;
 
 private:
+    // 使用 using 关键字声明一个 ro_or_rw_ext_t 类型:
+    // objc::PointerUnion<const class_ro_t *, class_rw_ext_t *>
+    //（可理解为一个指针联合体，系统只为其分配一个指针的内存空间，
+    // 一次只能保存 class_ro_t 指针或者 class_rw_ext_t 指针）
+    
+    // 此时会发现 class_rw_t 一些端倪了。
+    // 在 class_ro_t 中它是直接定义不同的成员变量来保存数据，
+    // 而在 class_rw_t 中，它大概是用了一个中间人 struct class_rw_ext_t 来保存相关的数据。
+    
+    // 这里的数据存储根据类是否已经完成实现而分为两种情况：
+    // 1): 类未实现完成时，ro_or_rw_ext 中存储的是 class_ro_t *
+    // 2): 类已完成实现时，ro_or_rw_ext 中存储的是 class_rw_ext_t *，
+    //     而 class_ro_t * 存储在 class_rw_ext_t 的 const class_ro_t *ro 成员变量中。
+    
+    // 类的 class_ro_t 类型的数据是在编译时就产生了。🌿
     using ro_or_rw_ext_t = objc::PointerUnion<const class_ro_t, class_rw_ext_t, PTRAUTH_STR("class_ro_t"), PTRAUTH_STR("class_rw_ext_t")>;
 
+    // 根据 ro_or_rw_ext 获得 ro_or_rw_ext_t 类型的值。
+    //（可能是 class_ro_t * 或者 class_rw_ext_t *）
     const ro_or_rw_ext_t get_ro_or_rwe() const {
         return ro_or_rw_ext_t{ro_or_rw_ext};
     }
 
+    // 以原子方式把入参 const class_ro_t *ro 保存到 ro_or_rw_ext 中
     void set_ro_or_rwe(const class_ro_t *ro) {
         ro_or_rw_ext_t{ro, &ro_or_rw_ext}.storeAt(ro_or_rw_ext, memory_order_relaxed);
     }
 
+    // 先把入参 const class_ro_t *ro 赋值给入参 class_rw_ext_t *rwe 的 const class_ro_t *ro，
+    // 然后以原子方式把入参 class_rw_ext_t *rwe 保存到 ro_or_rw_ext 中
     void set_ro_or_rwe(class_rw_ext_t *rwe, const class_ro_t *ro) {
         // the release barrier is so that the class_rw_ext_t::ro initialization
         // is visible to lockless readers
@@ -1525,6 +1559,8 @@ private:
         ro_or_rw_ext_t{rwe, &ro_or_rw_ext}.storeAt(ro_or_rw_ext, memory_order_release);
     }
 
+    // 此处仅声明 extAlloc 函数
+    //（此函数的功能是进行 class_rw_ext_t 的初始化）
     class_rw_ext_t *extAlloc(const class_ro_t *ro, bool deep = false);
 
 public:
@@ -1554,6 +1590,11 @@ public:
         return get_ro_or_rwe().dyn_cast<class_rw_ext_t *>(&ro_or_rw_ext);
     }
 
+    // 由 class_ro_t 构建一个 class_rw_ext_t，
+    // 如果目前 ro_or_rw_ext 已经是 class_rw_ext_t 指针了，则直接返回
+    // 如果目前 ro_or_rw_ext 是 class_ro_t 指针的话，
+    // 根据 class_ro_t 的值构建 class_rw_ext_t 并把它的地址赋值给 class_rw_t 的 ro_or_rw_ext，
+    // 且最后返回 class_rw_ext_t 指针。
     class_rw_ext_t *extAllocIfNeeded() {
         auto v = get_ro_or_rwe();
         if (fastpath(v.is<class_rw_ext_t *>())) {
@@ -1587,8 +1628,10 @@ public:
     const method_array_t methods() const {
         auto v = get_ro_or_rwe();
         if (v.is<class_rw_ext_t *>()) {
+            // 如果有rw_ext_t 则访问里面的methods
             return v.get<class_rw_ext_t *>(&ro_or_rw_ext)->methods;
         } else {
+            // 否则就访问ro里面的baseMethods
             return method_array_t{v.get<const class_ro_t *>(&ro_or_rw_ext)->baseMethods};
         }
     }
@@ -1614,6 +1657,9 @@ public:
 
 
 struct class_data_bits_t {
+    /*
+     friend关键字friend友元，指的是某些普通函数、成员函数、类为了访问指定类中的私有成员，将这些函数或者类用friend.
+     */
     friend objc_class;
 
     // Values are the FAST_ flags above.

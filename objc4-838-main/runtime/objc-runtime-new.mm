@@ -1348,17 +1348,27 @@ class_rw_ext_t *
 class_rw_t::extAlloc(const class_ro_t *ro, bool deepCopy)
 {
     runtimeLock.assertLocked();
-
+    
     auto rwe = objc::zalloc<class_rw_ext_t>();
-
+    // class is a metaclass
+    // #define RO_META (1<<0)
+    // 标识是否是元类，如果是元类，则 version 是 7 否则是 0
     rwe->version = (ro->flags & RO_META) ? 7 : 0;
-
+    
+    // 把 ro 中的方法列表追加到 rw（class_rw_ext_t） 中
+    //（attachLists 函数等下在分析 list_array_tt 时再进行详细分析）
     method_list_t *list = ro->baseMethods;
     if (list) {
+        // 是否需要对 ro 的方法列表进行深拷贝，默认是 false
         if (deepCopy) list = list->duplicate();
+        
+        // 把 ro 的方法列表追加到 rwe 的方法列表中
+        //（attachLists 函数在分析 list_array_tt 时再进行详细分析）
+        //（注意 rwe->methods 的有两种形态，可能是指向单个列表的指针，
+        // 或者是指向列表的指针数组（数组中放的是列表的指针））
         rwe->methods.attachLists(&list, 1);
     }
-
+    
     // See comments in objc_duplicateClass
     // property lists and protocol lists historically
     // have not been deep-copied
@@ -1368,12 +1378,13 @@ class_rw_t::extAlloc(const class_ro_t *ro, bool deepCopy)
     if (proplist) {
         rwe->properties.attachLists(&proplist, 1);
     }
-
+    
     protocol_list_t *protolist = ro->baseProtocols;
     if (protolist) {
         rwe->protocols.attachLists(&protolist, 1);
     }
-
+    // 把 ro 赋值给 rw 的 const class_ro_t *ro，
+    // 并以原子方式把 rw 存储到 class_rw_t 的 explicit_atomic<uintptr_t> ro_or_rw_ext 中
     set_ro_or_rwe(rwe, ro);
     return rwe;
 }

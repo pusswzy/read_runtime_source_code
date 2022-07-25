@@ -16,6 +16,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, strong) NSString *name2;
 @property (nonatomic, strong) NSString *name3;
 - (void)say;
+- (void)instanceMethod;
 - (void)unHandleFunction;
 @end
 
