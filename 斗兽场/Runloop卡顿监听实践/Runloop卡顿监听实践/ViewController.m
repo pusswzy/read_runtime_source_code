@@ -6,9 +6,12 @@
 //
 
 #import "ViewController.h"
+#import "HZFrozenObserverManager.h"
 
 @interface ViewController () <UITableViewDataSource, UITableViewDelegate>
 @property (nonatomic, strong) UITableView *tableView;
+@property (nonatomic, strong) UIView *redView;
+@property (nonatomic, strong) UIButton *actionButton;
 @end
 
 @implementation ViewController
@@ -17,12 +20,23 @@
     [super viewDidLoad];
     // Do any additional setup after loading the view.
     [self.view addSubview:self.tableView];
+    [self.view addSubview:self.actionButton];
+    
+    [[HZFrozenObserverManager sharedManager] startMonitor];
     
 }
 
 - (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
-    self.tableView.frame = CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height - 300);
+    self.tableView.frame = CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height - 400);
+    self.actionButton.frame = CGRectMake(0, 500, 100, 100);
+}
+
+#pragma mark - action method
+- (void)handleActionbuttonClickAction:(UIButton *)sender {
+    NSLog(@"↓");
+    sleep(8);
+    NSLog(@"↑");
 }
 
 #pragma mark - UITableViewDataSource
@@ -33,12 +47,12 @@
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"123" forIndexPath:indexPath];
     cell.textLabel.text = [NSString stringWithFormat:@"%zd行", indexPath.row];
+    if (indexPath.row % 20 == 0) {
+        NSLog(@"模拟卡死");
+        sleep(2);
+    }
     return cell;
 }
-
-
-
-
 
 - (UITableView *)tableView {
     if (!_tableView) {
@@ -51,6 +65,25 @@
         [_tableView registerClass:[UITableViewCell class] forCellReuseIdentifier:@"123"];
     }
     return _tableView;
+}
+
+- (UIView *)redView {
+    if (!_redView) {
+        _redView = [[UIView alloc] init];
+        _redView.backgroundColor = [UIColor redColor];
+    }
+    return _redView;
+}
+
+- (UIButton *)actionButton {
+    if (!_actionButton) {
+        _actionButton = [UIButton buttonWithType:UIButtonTypeCustom];
+        [_actionButton setTitle:@"按钮事件" forState:UIControlStateNormal];
+        [_actionButton setTitleColor:[UIColor grayColor] forState:UIControlStateNormal];
+        _actionButton.titleLabel.font = [UIFont systemFontOfSize:17 weight:UIFontWeightBold];
+        [_actionButton addTarget:self action:@selector(handleActionbuttonClickAction:) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return _actionButton;
 }
 
 @end

@@ -15,6 +15,7 @@
 		B81E1FA928922EFF0099A325 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B81E1FA728922EFF0099A325 /* LaunchScreen.storyboard */; };
 		B81E1FAC28922EFF0099A325 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = B81E1FAB28922EFF0099A325 /* main.m */; };
 		B81E1FB528922F930099A325 /* HZFrozenObserverManager.m in Sources */ = {isa = PBXBuildFile; fileRef = B81E1FB428922F930099A325 /* HZFrozenObserverManager.m */; };
+		B85267EF2898D5420000413C /* LXDBacktraceLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = B85267ED2898D5420000413C /* LXDBacktraceLogger.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +33,8 @@
 		B81E1FAB28922EFF0099A325 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		B81E1FB328922F930099A325 /* HZFrozenObserverManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HZFrozenObserverManager.h; sourceTree = "<group>"; };
 		B81E1FB428922F930099A325 /* HZFrozenObserverManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HZFrozenObserverManager.m; sourceTree = "<group>"; };
+		B85267ED2898D5420000413C /* LXDBacktraceLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LXDBacktraceLogger.m; sourceTree = "<group>"; };
+		B85267EE2898D5420000413C /* LXDBacktraceLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LXDBacktraceLogger.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -83,11 +86,22 @@
 		B81E1FB228922F090099A325 /* RunloopObserverManager */ = {
 			isa = PBXGroup;
 			children = (
+				B85267EC2898D5420000413C /* Backtrace */,
 				B81E1FB328922F930099A325 /* HZFrozenObserverManager.h */,
 				B81E1FB428922F930099A325 /* HZFrozenObserverManager.m */,
 			);
 			path = RunloopObserverManager;
 			sourceTree = "<group>";
+		};
+		B85267EC2898D5420000413C /* Backtrace */ = {
+			isa = PBXGroup;
+			children = (
+				B85267EE2898D5420000413C /* LXDBacktraceLogger.h */,
+				B85267ED2898D5420000413C /* LXDBacktraceLogger.m */,
+			);
+			name = Backtrace;
+			path = "LXDAppFluecyMonitor-master/LXDAppFluecyMonitor/LXDAppFluecyMonitor/Backtrace";
+			sourceTree = SOURCE_ROOT;
 		};
 /* End PBXGroup section */
 
@@ -160,6 +174,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B81E1FA128922EFD0099A325 /* ViewController.m in Sources */,
+				B85267EF2898D5420000413C /* LXDBacktraceLogger.m in Sources */,
 				B81E1F9B28922EFD0099A325 /* AppDelegate.m in Sources */,
 				B81E1FB528922F930099A325 /* HZFrozenObserverManager.m in Sources */,
 				B81E1FAC28922EFF0099A325 /* main.m in Sources */,

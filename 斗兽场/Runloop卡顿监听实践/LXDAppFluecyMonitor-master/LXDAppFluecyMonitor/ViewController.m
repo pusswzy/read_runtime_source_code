@@ -54,7 +54,13 @@
 //    }
     
     
-    sleep(2.0);
+//    sleep(2.0);
+    [[LXDAppFluecyMonitor sharedMonitor] stopMonitoring];
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        
+        [[LXDAppFluecyMonitor sharedMonitor] startMonitoring];
+    });
+    
 }
 
 

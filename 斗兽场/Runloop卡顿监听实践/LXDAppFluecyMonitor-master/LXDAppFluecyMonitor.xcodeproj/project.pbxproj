@@ -117,7 +117,6 @@
 			isa = PBXGroup;
 			children = (
 				EF96934C1E82196E005EC812 /* LXDAppFluecyMonitor */,
-				EF96931C1E8218B4005EC812 /* AppDelegate.h */,
 				EF96931D1E8218B4005EC812 /* AppDelegate.m */,
 				EF96931F1E8218B4005EC812 /* ViewController.h */,
 				EF9693201E8218B4005EC812 /* ViewController.m */,
@@ -142,6 +141,7 @@
 			isa = PBXGroup;
 			children = (
 				EF9693331E8218B5005EC812 /* LXDAppFluecyMonitorTests.m */,
+				EF96931C1E8218B4005EC812 /* AppDelegate.h */,
 				EF9693351E8218B5005EC812 /* Info.plist */,
 			);
 			path = LXDAppFluecyMonitorTests;
@@ -255,6 +255,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 				Base,
 			);

@@ -136,8 +136,15 @@ static void lxdRunLoopObserverCallback(CFRunLoopObserverRef observer, CFRunLoopA
     };
     _observer = CFRunLoopObserverCreate(kCFAllocatorDefault, kCFRunLoopAllActivities, YES, 0, &lxdRunLoopObserverCallback, &context);
     CFRunLoopAddObserver(CFRunLoopGetMain(), _observer, kCFRunLoopCommonModes);
-    
+    /*
+     与UI卡顿不同的事，事件处理往往是处在kCFRunLoopBeforeWaiting的状态下收到了Sources事件源，最开始笔者尝试同样以多个时间片段查询的方式处理。但是由于主线程的RunLoop在闲置时基本处于Before Waiting状态，这就导致了即便没有发生任何卡顿，这种检测方式也总能认定主线程处在卡顿状态。
+
+     就在这时候寒神(南栀倾寒)推荐给我一套Swift的卡顿检测第三方ANREye，这套卡顿监控方案大致思路为：创建一个子线程进行循环检测，每次检测时设置标记位为YES，然后派发任务到主线程中将标记位设置为NO。接着子线程沉睡超时阙值时长，判断标志位是否成功设置成NO。如果没有说明主线程发生了卡顿，无法处理派发任务：
+
+
+     */
     dispatch_async(lxd_event_monitor_queue(), ^{
+        NSLog(@"123123123");
         while (SHAREDMONITOR.isMonitoring) {
             if (SHAREDMONITOR.currentActivity == kCFRunLoopBeforeWaiting) {
                 __block BOOL timeOut = YES;
@@ -152,6 +159,7 @@ static void lxdRunLoopObserverCallback(CFRunLoopObserverRef observer, CFRunLoopA
                 dispatch_wait(SHAREDMONITOR.eventSemphore, DISPATCH_TIME_FOREVER);
             }
         }
+        NSLog(@"zzzzzzz");
     });
     
     dispatch_async(lxd_fluecy_monitor_queue(), ^{

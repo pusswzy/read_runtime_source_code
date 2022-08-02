@@ -9,8 +9,12 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+#define HZObserverSharedManager [HZFrozenObserverManager sharedManager]
+
 @interface HZFrozenObserverManager : NSObject
 + (instancetype)sharedManager;
+
+- (void)startMonitor;
 @end
 
 NS_ASSUME_NONNULL_END
