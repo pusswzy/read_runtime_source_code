@@ -34,9 +34,25 @@
 
 #pragma mark - action method
 - (void)handleActionbuttonClickAction:(UIButton *)sender {
-    NSLog(@"↓");
-    sleep(8);
-    NSLog(@"↑");
+    /// 我很好奇会在一次loop内执行完么
+    /// 答案:全部都在一次loop中执行了 卡死了
+//    for (int i = 0; i < 1000000000; i++) {
+//        NSOperationQueue *obj = [[NSObject alloc] init];
+//    }
+    
+    
+    @try {
+        NSArray *array = @[];
+        array[1];
+    } @catch (NSException *exception) {
+        
+    } @finally {
+//        CFRunLoopRef runloop = CFRunLoopGetCurrent();
+//        while (1) {
+//            CFRunLoopRunInMode(kCFRunLoopCommonModes, 0.001, false);
+//        }
+    }
+    
 }
 
 #pragma mark - UITableViewDataSource

@@ -18,6 +18,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)say;
 - (void)instanceMethod;
 - (void)unHandleFunction;
+
+- (void)hookObjcForward;
 @end
 
 NS_ASSUME_NONNULL_END

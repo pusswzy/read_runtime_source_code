@@ -103,6 +103,7 @@ static HZFrozenObserverManager *manager;
     dispatch_async(fetchObserveActivityQueue(), ^{
         NSUInteger sameCount = 0;
         while (HZObserverSharedManager.isObserveing == YES) {
+            ///!!!: 感觉这里自己没有想清楚,只要状态变动, 信号量返回值为0, 会将技术清零,不会一直计算的.
             intptr_t semphoreResult = dispatch_semaphore_wait(HZObserverSharedManager.activitySemaphore, dispatch_time(DISPATCH_TIME_NOW, hz_observer_single_intervel));
             if (semphoreResult != 0) {
                 if (HZObserverSharedManager.currentRunloopActivity == kCFRunLoopBeforeSources || HZObserverSharedManager.currentRunloopActivity == kCFRunLoopAfterWaiting) {

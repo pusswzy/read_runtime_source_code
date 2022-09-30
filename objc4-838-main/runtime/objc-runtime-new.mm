@@ -6260,7 +6260,7 @@ static void resolveClassMethod(id inst, SEL sel, Class cls)
     }
 }
 
-
+///!!!: 动态方法解析
 /***********************************************************************
 * resolveInstanceMethod
 * Call +resolveInstanceMethod, looking for a method to be added to class cls.
@@ -6284,7 +6284,7 @@ static void resolveInstanceMethod(id inst, SEL sel, Class cls)
     // Cache the result (good or bad) so the resolver doesn't fire next time.
     // +resolveInstanceMethod adds to self a.k.a. cls
     IMP imp = lookUpImpOrNilTryCache(inst, sel, cls);
-
+// 打印消息看懂了
     if (resolved  &&  PrintResolving) {
         if (imp) {
             _objc_inform("RESOLVE: method %c[%s %s] "
@@ -6444,8 +6444,22 @@ IMP lookUpImpOrNilTryCache(id inst, SEL sel, Class cls, int behavior)
 }
 
 NEVER_INLINE
+
+/* method lookup */
+//enum {
+//    LOOKUP_INITIALIZE = 1, 0
+//    LOOKUP_RESOLVER = 2, 1>>1
+//    LOOKUP_CACHE = 4, 1>>2
+//    LOOKUP_NIL = 8, 1>>3
+//};
+
+///< 我觉得这个就算是核心代码了 objc_msg_send 最后会调用这个方法
+
+//  lookUpImpOrForward方法的目的在于根据class和SEL，在class或其super class中找到并返回对应的实现IMP，同时，cache所找到的IMP到当前class中。如果没有找到对应IMP，lookUpImpOrForward会进入消息转发流程
+
 IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
 {
+    // _objc_msgForward_impcache我的理解就是调用msg_forward
     const IMP forward_imp = (IMP)_objc_msgForward_impcache;
     IMP imp = nil;
     Class curClass;
@@ -6488,6 +6502,7 @@ IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
     // objc_duplicateClass, objc_initializeClassPair or objc_allocateClassPair.
     checkIsKnownClass(cls);
 
+    // 调用类及父类的 initialize方法
     cls = realizeAndInitializeIfNeeded_locked(inst, cls, behavior & LOOKUP_INITIALIZE);
     // runtimeLock may have been dropped but is now locked again
     runtimeLock.assertLocked();
@@ -6544,8 +6559,14 @@ IMP lookUpImpOrForward(id inst, SEL sel, Class cls, int behavior)
 
     // No implementation found. Try method resolver once.
 
+    /*
+     a^=b相当于：a=a^b；
+    异或就是两个数的二进制形式，按位对比，相同取0，不同取。
+     */
     if (slowpath(behavior & LOOKUP_RESOLVER)) {
+        ///!!!: 这里取异或的原因就是 只进来一次就够了
         behavior ^= LOOKUP_RESOLVER;
+        /// 动态方法解析
         return resolveMethod_locked(inst, sel, cls, behavior);
     }
 

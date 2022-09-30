@@ -498,6 +498,7 @@ void initializeNonMetaClass(Class cls)
     Class supercls;
     bool reallyInitialize = NO;
 
+    /// initialize方法是父类先于子类进行调用的
     // Make sure super is done initializing BEFORE beginning to initialize cls.
     // See note about deadlock above.
     supercls = cls->getSuperclass();

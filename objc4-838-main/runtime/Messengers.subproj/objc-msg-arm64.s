@@ -565,7 +565,7 @@ _objc_debug_taggedpointer_classes:
 
 .endmacro
 #endif
-
+/// objc_msgSend汇编实现
 	ENTRY _objc_msgSend
 	UNWIND _objc_msgSend, NoFrame
 

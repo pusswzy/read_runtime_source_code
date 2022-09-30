@@ -49,6 +49,7 @@ typedef struct objc_object *id;
 /// An opaque type that represents a method selector.
 typedef struct objc_selector *SEL;
 
+///!!!: IMP本质就是一个函数指针 参数为不固定参数 前两个参数是消息接受者和选择子
 /// A pointer to the function of a method implementation. 
 #if !OBJC_OLD_DISPATCH_PROTOTYPES
 typedef void (*IMP)(void /* id, SEL, ... */ ); 
